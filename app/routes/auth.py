@@ -52,6 +52,4 @@ def callback():
 @bp.route('/logout')
 def logout():
     session.clear()
-    oauth = current_app.oauth
-    params = {'returnTo': url_for('home', _external=True), 'client_id': current_app.config['AUTH0_CLIENT_ID']}
-    return redirect(oauth.auth0.api_base_url + '/v2/logout?' + urlencode(params))
+    return redirect('/')
