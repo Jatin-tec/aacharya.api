@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      header {
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        padding: 20px 0;
+      }
+
+      nav ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        background-color: #f4f4f4;
+        text-align: center;
+      }
+
+      nav ul li {
+        display: inline;
+        padding: 10px 20px;
+      }
+
+      nav ul li a {
+        text-decoration: none;
+        color: #333;
+      }
+
+      main {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        padding: 20px;
+      }
+      .dashboard {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px;
+      }
+      .topics {
+        width: 60%;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      .topics > h2 {
+        text-align: center;
+      }
+      .subtopic-container {
+        border: 1px solid #333;
+        border-radius: 12px;
+        width: fit-content;
+        padding: 2px 8px;
+        margin: 0 0.3rem;
+      }
+      .topic {
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1rem;
+      }
+      .topic > div {
+        display: flex;
+      }
+      .profile {
+        display: flex;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      .profile > img {
+        width: 5rem;
+      }
+      .profile > p {
+        margin: auto;
+        font-size: larger;
+        font-weight: 700;
+      }
+
+      .notes {
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      .streak {
+        margin: 1rem 0;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 1rem;
+      }
+
+      .streak h2 {
+        margin-bottom: 0.5rem;
+      }
+
+      .calendar {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .weekdays {
+        display: flex;
+      }
+
+      .weekdays div {
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        line-height: 40px;
+        border: 1px solid #333;
+      }
+
+      .days {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .day {
+        width: 40px;
+        height: 40px;
+        border: 1px solid #333;
+        margin: 2px;
+      }
+
+      /* Apply green color to streak days */
+      .day.green {
+        background-color: lightgreen;
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </nav>
+
+    <div class="dashboard">
+      <div class="topics">
+        <h2>List of Topics Learned</h2>
+        <div class="topics-list">
+          {% for topic in topics %}
+          <div class="topic">
+            <h4>{{ topic.name }}</h4>
+            <div>
+              {% for subtopic in topic.subTopics %}
+              <p class="subtopic-container">{{ subtopic }}</p>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <div class="profile">
+          <img src="{{" user_info.picture }} alt="img" />
+          <p>{{ user_info.given_name }}</p>
+        </div>
+
+        <div class="streak">
+          <h2>Streak Calendar</h2>
+          <div class="calendar">
+            <div class="weekdays">
+              <div class="day green">Sun</div>
+              <div class="day green">Mon</div>
+              <div class="day green">Tue</div>
+              <div class="day">Wed</div>
+              <div class="day green">Thu</div>
+              <div class="day green">Fri</div>
+              <div class="day">Sat</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="notes">
+          <h2>Notes</h2>
+          <h4>Heading</h4>
+          <p>
+            This is where the notes from previously watched videos will be
+            displayed.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

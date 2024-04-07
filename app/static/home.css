@@ -1,0 +1,151 @@
+/* Reset some default browser styles */
+body, html, header, main, footer {
+    margin: 0;
+    padding: 0;
+    color: white;
+    background-color:#191a19 ;
+}
+
+/* Header styles */
+header {
+    background-color: #fff; /* Red background */
+    padding: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.right-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo img {
+    height: 40px;
+}
+.logout{
+    padding: 8px;
+    background-color: #69e9cf;
+    border-radius: 10px;
+}
+
+.dashboard{
+    padding: 8px;
+    background-color: #69e9cf;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-bar{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: solid 2px #42486d;
+    border-radius: 5px;
+}
+
+.search-bar input[type="text"] {
+    padding: 10px;
+    width: 300px;
+    border: none;
+}
+
+.search-bar button {
+    padding: 10px 10px;
+    background-color: #69e9cf;
+    color: #000;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    
+}
+
+/* Main styles */
+main {
+    display: flex;
+    padding: 20px;
+}
+
+.video-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    /* flex: 3; */
+}
+iframe{
+    margin-top: 16px;
+}
+
+
+/* Footer styles */
+footer {
+    background-color: #F0F0F0; /* Light gray */
+    padding: 10px;
+    text-align: center;
+}
+.video{
+    display: grid;
+  row-gap: 50px;
+  grid-template-columns: auto auto auto;
+  background-color: #ffffff;
+  padding: 10px;
+    
+}
+.video-list div{
+    
+    max-width: 480px;   
+    min-width: 480px;
+}
+/* .video-list .vid-container{
+    grid-column-start: 1;
+    grid-column-end: 3;
+    margin: 5px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      color: #fafafa;
+  } */
+  
+  .y-vid{
+    /* box-sizing: border-box; */
+  }
+  a{
+    text-decoration: none;
+    color: wheat;
+  }
+  
+  .vid-container{
+    background-color: #090909;
+    border-radius: 10px;
+    color: #fafafa;
+
+  }
+
+  .video-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    margin: 0 -10px; /* Add some margin to create gaps between video containers */
+}
+
+.vid-container {
+    width: calc(33.33% - 20px); /* Set the width for each container, considering the margins */
+    margin: 10px; /* Add some margin around each container */
+    box-sizing: border-box; /* Include padding and border in the width */
+}
+
+@media screen and (max-width: 768px) {
+    .vid-container {
+        width: calc(50% - 20px); /* Show two containers per row on smaller screens */
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .vid-container {
+        width: 100%; /* Show one container per row on even smaller screens */
+    }
+}

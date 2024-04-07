@@ -1,0 +1,39 @@
+version: '3.4'
+
+networks:
+  net:
+    driver: bridge
+
+services:
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    environment:
+      - IS_PERSISTENT=TRUE
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    networks:
+      - net
+
+  flask:
+    restart: always
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask-server
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./:/app/.
+    depends_on:
+      # - mongodb
+      - chroma
+    networks:
+      - net
+
+volumes:
+  chroma-data:
+    driver: local

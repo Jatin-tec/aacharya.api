@@ -1,0 +1,14 @@
+# env
+.env
+
+# Logs
+logs
+
+# virtualenv
+venv
+raksha
+# cache
+__pycache__
+.cache
+.cache/*
+*.pyc
