@@ -33,7 +33,7 @@
                 var searchText = document.getElementById('searchInput').value;
                 if (searchText.trim() !== "") {
                     var encodedText = encodeURIComponent(searchText);
-                    window.location.href = `http://localhost:5000/?q=${encodedText}`;
+                    window.location.href = `/?q=${encodedText}`;
                 } else {
                     alert("Please enter a search query.");
                 }
