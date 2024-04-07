@@ -12,6 +12,7 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      background-color: #69e9cf;
     }
 
     /* Header styles */
@@ -24,6 +25,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 100px;
     }
 
     .right-nav {
@@ -212,9 +214,12 @@
       {% endfor %}
     </div>
     <div>
+  </div>
+</div>
+<div>
       <div class="profile">
         <img src={{ user_info.picture }} alt="img" />
-        <p>{{ user_info.given_name }}</p>
+        <p>{{ user_info.name }}</p>
       </div>
 
       <div class="streak">
@@ -254,15 +259,8 @@
     </div>
 
   </div>
-
-  <div class="notes">
-    <h2>Notes</h2>
-    <h4>Heading</h4>
-    <p>
-      This is where the notes from previously watched videos will be
-      displayed.
-    </p>
-  </div>
+</div>
+  
 </div>
 </div>
 </body>
