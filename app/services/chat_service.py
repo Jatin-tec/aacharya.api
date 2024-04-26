@@ -1,15 +1,20 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from flask import current_app
 import chromadb.utils.embedding_functions as embedding_functions
-import requests
+import time
 
-def get_transcript(video_id):
-    # try:
-    transcript = YouTubeTranscriptApi.get_transcript(video_id=video_id)
-    return transcript
-    # except Exception as e:
-    #     print(f"Error getting transcript: {e}")
-    #     return None
+def get_transcript(video_id, retries=3, delay=5):
+    attempt = 0
+    while attempt < retries:
+        try:
+            transcript = YouTubeTranscriptApi.get_transcript(video_id)
+            return transcript
+        except Exception as e:
+            print(f"Connection reset by server: {e}. Retrying in {delay} seconds...")
+            time.sleep(delay)
+            attempt += 1
+    print("Failed to retrieve transcript after several attempts.")
+    return None
 
 
 def crop_transcript(transcript, timestamp):

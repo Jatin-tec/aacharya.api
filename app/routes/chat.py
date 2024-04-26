@@ -9,7 +9,7 @@ import datetime
 bp = Blueprint('chat', __name__, url_prefix='/chat')
 
 @bp.route('/')
-@login_required
+# @login_required
 def sessions():
     # vectorstore = current_app.vectorstore
 
@@ -77,29 +77,37 @@ def sessions():
     return render_template('chat.html', videoURL=videoURL)
 
 @bp.route('/transcript')
-@login_required
+# @login_required
 def transcript():
     video_id = request.args.get('q')
     transcript = get_transcript(video_id)
     return jsonify(transcript)
 
 @bp.route('/ask', methods=['POST'])
-@login_required
+# @login_required
 def ask():
     mongo = current_app.db["conversations"]
+    
     data = request.json
     user_message = data['message']
     timestamp = data.get('timestamp', 0)  # Default to 0 if not provided
 
     video_id = request.args.get('q')
+    print(user_message, timestamp, video_id)
+
     transcript = get_transcript(video_id)
 
-    summarize = request.args.get('summarize', False)
 
+
+    summarize = request.args.get('summarize', False)
 
     # Crop the transcript up to the provided timestamp
     cropped_transcript = crop_transcript(transcript, timestamp)
 
+    print(cropped_transcript, 'cropped_transcript')
+
+    # return jsonify({'response': cropped_transcript})
+    
     vectorstore = current_app.vectorstore
     response = wrapper.generate_response(user_message, context=cropped_transcript, vectorstore=vectorstore)
     
@@ -113,8 +121,10 @@ def ask():
                 text = q["questions"][0]["text"]
                 questions.append(text)
         response = wrapper.generate_response(user_message, context=transcript, vectorstore=vectorstore, summary=True, questions=questions)
+    
     response_msg = ""
     for r in response:
+        print(r)
         if r["choices"][0]["delta"] == {}:
             break
         msg = r["choices"][0]["delta"]["content"]
@@ -125,28 +135,30 @@ def ask():
         "content": user_message
     })
 
-    user_id = get_user_info()["sub"]
+    print(response_msg, 'response_msg')
 
-    # Store system response
-    mongo.insert_one({   
-        "videoId": video_id,
-        "userId": user_id,
-        "transcript": transcript,
-        "timestamp": datetime.datetime.now(),
-        "questions": [
-            {
-            "text": user_message,
-            "response": response_msg
-            }
-        ]
-    })
+    # user_id = get_user_info()["sub"]
 
-    if summarize:
-        notes = current_app.db["notes"]
-        notes.insert_one({
-            "videoId": video_id,
-            "userId": user_id,
-            "notes": response_msg
-        })
+    # # Store system response
+    # mongo.insert_one({   
+    #     "videoId": video_id,
+    #     "userId": user_id,
+    #     "transcript": transcript,
+    #     "timestamp": datetime.datetime.now(),
+    #     "questions": [
+    #         {
+    #         "text": user_message,
+    #         "response": response_msg
+    #         }
+    #     ]
+    # })
+
+    # if summarize:
+    #     notes = current_app.db["notes"]
+    #     notes.insert_one({
+    #         "videoId": video_id,
+    #         "userId": user_id,
+    #         "notes": response_msg
+    #     })
 
     return jsonify({'response': response_msg})

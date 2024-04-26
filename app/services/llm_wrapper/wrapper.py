@@ -56,6 +56,7 @@ class LLMWrapper:
             
             except Exception as e:
                 print("Unhandled exception:", e)
+                self._handle_rate_limit()
                 return {'error': 'unknown'}
 
     def _handle_rate_limit(self):

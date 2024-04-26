@@ -6,12 +6,16 @@ from authlib.integrations.flask_client import OAuth
 from .config import Config
 import chromadb
 import time
+from flask_cors import CORS
 
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(Config)
-    
+
+    # allow cross origin requests
+    CORS(app)
+
     chroma_host = Config.CHROMA_HOST
     # vectorstore = chromadb.HttpClient(host=chroma_host , port=8000,
     #                                    settings=chromadb.config.Settings(allow_reset=True, anonymized_telemetry=False))
