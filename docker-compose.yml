@@ -16,24 +16,20 @@ services:
     networks:
       - net
 
-  flask:
-    restart: always
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    container_name: flask-server
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rootuser
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
     ports:
-      - "5000:5000"
-    env_file:
-      - .env
+      - "27017:27017"
     volumes:
-      - ./:/app/.
-    depends_on:
-      # - mongodb
-      - chroma
+      - mongodb_data_container:/data/db
     networks:
       - net
 
 volumes:
+  mongodb_data_container:
   chroma-data:
     driver: local

@@ -22,7 +22,11 @@ def crop_transcript(transcript, timestamp):
     for entry in transcript:
         entry_end_time = entry['start'] + entry['duration']
         if entry_end_time <= timestamp:
-            cropped_transcript.append(entry)
+            cropped_transcript.append({
+                "text": entry['text'],
+                "start": entry['start'],
+                "end": int(entry['start'] + entry['duration'])
+            })
         else:
             # Optionally, you could add logic here to include the entry that's currently being spoken,
             # even if it's only partially completed.
@@ -38,7 +42,7 @@ def huggingface_ef(input):
             # Initialize the HuggingFace embedding function with an API key and model name
             hf_embedding_function = embedding_functions.HuggingFaceEmbeddingFunction(
                 api_key=api_key,
-                model_name="sentence-transformers/all-MiniLM-L6-v2"
+                model_name="hkunlp/instructor-base"
             )
             # Use the embedding function to process the input and return the embeddings
             return hf_embedding_function(input)[0][0]

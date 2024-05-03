@@ -4,71 +4,76 @@ import dotenv
 import os
 from .prompts.system_prompt import get_system_prompt, get_notes_generator_prompt
 
+
 class LLMWrapper:
     """Wrapper class for the LLM API."""
-    def __init__(self, max_tokens=1000, model="gpt-3.5-turbo", max_try=2, temprature=0):
+    def __init__(self, max_tokens=1000, model="gpt-3.5-turbo", max_tries=2, temperature=0):
         self.max_tokens = max_tokens
         self.model = model
-        self.temperature = temprature
-        self.max_try = max_try
-        self.history = [
-            {"role": "system", "content": ""}, 
-        ]
+        self.temperature = temperature
+        self.max_tries = max_tries
+        self.history = []
 
-    def _send_request(self, user_prompt="", context=None, vectorstore=None, summary=False, questions=None):
-        for _ in range(self.max_try):
+    def _prepare_system_prompt(self, user_prompt, **kwargs):
+        # System prompt before appending the user prompt to history
+        context = kwargs.get('context')
+        vectorstore = kwargs.get('vectorstore')
+        summary = kwargs.get('summary', False)
+        questions = kwargs.get('questions')
+
+        if vectorstore:
+            pass
+            # collection = vectorstore.get_collection(name="FAQ", embedding_function="huggingface_ef")
+            # context = collection.query(query_texts=user_prompt, n_results=4)
+
+        system_prompt = get_system_prompt(context)
+        if summary:
+            system_prompt = get_notes_generator_prompt(context, questions)
+
+        # Append the system prompt first in a new conversation
+        self.history.append({"role": "system", "content": system_prompt})
+
+    def _send_request(self, user_prompt, **kwargs):
+        # Append the user prompt to history after the system's initial response setup
+        self.history.append({"role": "user", "content": user_prompt})
+
+        for attempt in range(self.max_tries):
             try:
-                self.history.append({"role": "user", "content": f"{user_prompt}"}) 
-
-                if vectorstore:
-                    collection = vectorstore.get_collection(name="FAQ", embedding_function=huggingface_ef)
-                    context = collection.query(
-                        query_texts=user_prompt,
-                        n_results=4
-                    )
-                
-                self.history[0]["content"] = get_system_prompt(context)
-                if summary:
-                    self.history[0]["content"] = get_notes_generator_prompt(context, questions)
-
-                print(self.history, "printing general chat prompt")
                 response = openai.ChatCompletion.create(
                     model=self.model,
                     messages=self.history,
                     max_tokens=self.max_tokens,
-                    temperature=self.temperature,
-                    stream=True,
+                    temperature=self.temperature
                 )
-                return response 
+                # Append the model's response to history
+                self.history.append({"role": "assistant", "content": response['choices'][0]['message']['content']})
+                return response['choices'][0]['message']['content']
 
             except openai.error.RateLimitError as e:
-                print(e)
-                self._handle_rate_limit()
-                return self._send_request(context)
-            
+                print("Rate limit exceeded, retrying...", e)
+                if attempt < self.max_tries - 1:
+                    self._handle_rate_limit()
+                else:
+                    return {'error': 'rate_limit_exceeded', 'message': str(e)}
+
             except openai.error.InvalidRequestError as e:
-                if len(prompt) > self.max_tokens:
-                    print("Prompt too long. Truncating...")
-                    prompt = prompt[:self.max_tokens]
-                    return self._send_request(prompt, context)
                 print("Invalid request:", e)
-                return {'error': 'invalid_request'}
-            
+                return {'error': 'invalid_request', 'message': str(e)}
+
             except Exception as e:
                 print("Unhandled exception:", e)
-                self._handle_rate_limit()
-                return {'error': 'unknown'}
-
+                return {'error': 'unknown', 'message': str(e)}
+    
     def _handle_rate_limit(self):
-        print("Rate limit exceeded. Waiting before retrying...")
-        time.sleep(60) 
+        time.sleep(10)
 
-    def generate_response(self, user_input, context=None, vectorstore=None, summary=False, questions=None):
-        response = self._send_request(user_input, context, vectorstore, summary, questions)
-        return response
+    def generate_response(self, user_input, **kwargs):
+        if not self.history:
+            self._prepare_system_prompt(user_input, **kwargs)
+        return self._send_request(user_input, **kwargs)
 
     def reset_history(self):
-        self.history = False
+        self.history = []
 
 if __name__ == "__main__":
     dotenv.load_dotenv()
