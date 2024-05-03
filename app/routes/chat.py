@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify
 from ..services.llm_service import wrapper
 from ..services.chat_service import get_transcript, crop_transcript, huggingface_ef, document_exists
-from ..services.auth_service import login_required, get_user_info
 from flask import current_app
 from time import sleep
 import uuid
@@ -77,21 +76,49 @@ def sessions():
     #     collection.add(documents=documents, metadatas=metadatas, ids=ids, embeddings=embeds)
     return render_template('chat.html', videoURL=videoURL)
 
-@bp.route('/transcript')
-# @login_required
+@bp.route('/transcript', methods=['GET', 'POST'])
 def transcript():
     video_id = request.args.get('q')
-    transcript = get_transcript(video_id)
+    mongo = current_app.db["videos"]
+
+    if not video_id:
+        return jsonify({'response': 'video_id not provided'})
+    
+    data = request.json
+    user = data['user']
+    if not user:
+        return jsonify({'response': 'user not authenticated'})
+    
+    # Check if the video exists in the database
+    video = mongo.find_one({"videoId": video_id})
+    if not video:
+        transcript = get_transcript(video_id=video_id)
+
+        script = ""
+        for entry in transcript:
+            script += entry['text'] + " "
+
+        # Store the transcript in the database
+        mongo.insert_one({
+            "videoId": video_id,
+            "transcript": transcript,
+            "script": script,
+            "addedAt": datetime.datetime.now()
+        })
+        print("Transcript added to database")
+        return jsonify(transcript)
+
+    transcript = video['transcript']
     return jsonify(transcript)
 
 @bp.route('/ask', methods=['POST'])
-# @login_required
 def ask():
     mongo = current_app.db["conversations"]
     
     data = request.json
 
     user = data['user']
+    print (user)
     if not user:
         return jsonify({'response': 'user not authenticated'})
     
@@ -110,7 +137,6 @@ def ask():
     transcript = get_transcript(video_id)
     # Crop the transcript up to the provided timestamp
     cropped_transcript = crop_transcript(transcript, timestamp)
-
     print(cropped_transcript, 'cropped_transcript')
 
     response = wrapper.generate_response(user_message, context=cropped_transcript)
@@ -120,23 +146,19 @@ def ask():
         "content": response 
     })
 
-    # print(response_msg, 'response_msg')
-
-    # user_id = get_user_info()["sub"]
-
-    # # Store system response
-    # mongo.insert_one({   
-    #     "videoId": video_id,
-    #     "userId": user_id,
-    #     "transcript": transcript,
-    #     "timestamp": datetime.datetime.now(),
-    #     "questions": [
-    #         {
-    #         "text": user_message,
-    #         "response": response_msg
-    #         }
-    #     ]
-    # })
+    # Store system response
+    mongo.insert_one({   
+        "videoId": video_id,
+        "userId": user["sid"],
+        "transcript": transcript,
+        "timestamp": datetime.datetime.now(),
+        "questions": [
+            {
+            "text": user_message,
+            "response": response
+            }
+        ]
+    })
 
     return jsonify({'response': response})
 

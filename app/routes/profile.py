@@ -1,11 +1,10 @@
-from flask import Blueprint, render_template, session, current_app, jsonify
+from flask import Blueprint, render_template, session, current_app, jsonify, request
 from ..services.auth_service import login_required, get_user_info
 from bson.objectid import ObjectId
 
 bp = Blueprint('profile', __name__, url_prefix='/dashboard')
 
 @bp.route('/')
-@login_required
 def profile():
     try:
         # Get the user's identity from the JWT
@@ -35,3 +34,11 @@ def profile():
         # Handle exceptions such as connection errors or bad data
         current_app.logger.error(f"Error fetching profile: {e}")
         return jsonify({"error": "An error occurred while fetching the profile"}), 500
+
+@bp.route('/watch-history')
+def history():
+    if request.method == 'GET':
+        pass
+    if request.method == 'POST':
+        db_videos = current_app.db["videos"]
+            
