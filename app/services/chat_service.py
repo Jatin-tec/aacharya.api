@@ -1,6 +1,8 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from flask import current_app
 import chromadb.utils.embedding_functions as embedding_functions
+from googleapiclient.discovery import build
+
 import time
 
 def get_transcript(video_id, retries=3, delay=5):
@@ -25,7 +27,6 @@ def crop_transcript(transcript, timestamp):
             cropped_transcript.append({
                 "text": entry['text'],
                 "start": entry['start'],
-                "end": int(entry['start'] + entry['duration'])
             })
         else:
             # Optionally, you could add logic here to include the entry that's currently being spoken,
@@ -45,7 +46,7 @@ def huggingface_ef(input):
                 model_name="hkunlp/instructor-base"
             )
             # Use the embedding function to process the input and return the embeddings
-            return hf_embedding_function(input)[0][0]
+            return hf_embedding_function(input)
         except Exception as e:
             # Log or handle exceptions as necessary
             print(e)
@@ -61,3 +62,21 @@ def document_exists(collection, video_id):
     )
     return bool(result['ids'])
 
+def get_video_details(youtube_api_key, video_id):
+    # Build the YouTube API client
+    youtube = build('youtube', 'v3', developerKey=youtube_api_key)
+
+    # Retrieve the video details
+    video_response = youtube.videos().list(
+        part='snippet',  # Part parameter specifies that we need snippet information
+        id=video_id
+    ).execute()
+
+    # Check if there are any results
+    if not video_response['items']:
+        return "No video found with the specified ID"
+
+    # Extract title and description from the response
+    video_details = video_response['items'][0]['snippet']
+
+    return video_details

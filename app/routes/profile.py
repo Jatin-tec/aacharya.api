@@ -1,35 +1,69 @@
 from flask import Blueprint, render_template, session, current_app, jsonify, request
-from ..services.auth_service import login_required, get_user_info
 from bson.objectid import ObjectId
+from ..services.chat_service import huggingface_ef
 
 bp = Blueprint('profile', __name__, url_prefix='/dashboard')
 
-@bp.route('/')
+@bp.route('/', methods=['GET', 'POST'])
 def profile():
     try:
-        # Get the user's identity from the JWT
-        
         # Establish a connection to the users collection
-        db_users = current_app.db["users"]
+        notes = current_app.db["notes"]
+        watch_history = current_app.db["watch_history"]
+        videos = current_app.db["videos"]
         topics = current_app.db["topics"]
 
-        user_id = get_user_info().get("sub")
-        print(user_id)
-        # Convert learningTopics string IDs to ObjectId
-        user = db_users.find_one({"sub": user_id})
-
+        user = request.json.get("user")
         if not user:
-            return jsonify({"error": "User not found"}), 404
+            return jsonify({"error": "User not authenticated"}), 401
+        
+        notes = notes.find({"userId": user["sid"]}).sort("createdAt", -1)
 
-        learningTopics = topics.find({"sub": user_id})
+        notes_list = []
+        for note in notes:
+            notes_list.append({
+                "videoId": note["videoId"],
+                "userId": note["userId"],
+                "notes": note["notes"],
+                "createdAt": note["timestamp"],
+            })
 
-        learned_topics_details = []
-        for topic in learningTopics:
-            learned_topics_details.append(topic)
-        print(learned_topics_details, "learned_topics_details")
-        # Render the dashboard page with the user and topics information
-        return render_template('dashboard.html', user_info=user, topics=learned_topics_details)
-    
+        watch_history = watch_history.find({"user.sid": user["sid"]}).sort("timestamp", -1)
+        vectorstore = current_app.vectorstore
+        collection = vectorstore.get_or_create_collection(name="yt_transcripts")
+        
+        user_topics = topics.find({"userId": user["sid"]})
+
+        user_topics_list = []
+        for topic in user_topics:
+            video = videos.find_one({"videoId": topic["videoId"]})
+            user_topics_list.append({
+                "topic": {
+                    "category": topic["topics"]["category"],
+                    "id": topic["topics"]["id"],
+                },
+                "video": {
+                    "videoId": video["videoId"],
+                    "description": video["description"],
+                },
+            })
+
+
+        # watch_history_list = []
+        # for video in watch_history:
+        #     video = videos.find_one({"videoId": video["videoId"]})
+        #     similar_videos = collection.query(query_embeddings=huggingface_ef(video["script"]), include=[ "documents" ])
+        #     watch_history_list.append({
+        #         "video": {
+        #             "videoId": video["videoId"],
+        #             "description": video["description"],
+        #         },
+        #         # "timestamp": video["timestamp"],
+        #         "similar_videos": similar_videos
+        #     })
+
+        return jsonify({"notes": notes_list, "watchHistory": user_topics_list}), 200
+
     except Exception as e:
         # Handle exceptions such as connection errors or bad data
         current_app.logger.error(f"Error fetching profile: {e}")
@@ -42,3 +76,29 @@ def history():
     if request.method == 'POST':
         db_videos = current_app.db["videos"]
             
+@bp.route('/update_watch_history', methods=['POST'])
+def update_history():
+    db_videos = current_app.db["videos"]
+    db_watch_history = current_app.db["watch_history"]
+
+    video_id = request.json.get("video_id")
+    if not video_id:
+        return jsonify({"error": "Video ID is required"}), 400
+    
+    timestamp = request.json.get("timestamp", 0)
+
+    user = request.json.get("user")
+    if not user:
+        return jsonify({"error": "User is required"}), 400
+
+    video = db_videos.find_one({"videoId": video_id})
+    if not video:
+        return jsonify({"error": "Video not found"}), 404
+    
+    watch_history = db_watch_history.find_one({"videoId": video_id, "user": user})
+    if watch_history:
+        db_watch_history.update_one({"_id": watch_history["_id"]}, {"$set": {"timestamp": timestamp}})
+    else:
+        db_watch_history.insert_one({"videoId": video_id, "user": user, "timestamp": timestamp})
+
+    return jsonify({"message": "Video watched successfully"}), 200

@@ -2,7 +2,7 @@ import time
 import openai
 import dotenv
 import os
-from .prompts.system_prompt import get_system_prompt, get_notes_generator_prompt
+from .prompts.system_prompt import get_system_prompt, get_notes_generator_prompt, get_categories_prompt
 
 
 class LLMWrapper:
@@ -19,6 +19,7 @@ class LLMWrapper:
         context = kwargs.get('context')
         vectorstore = kwargs.get('vectorstore')
         summary = kwargs.get('summary', False)
+        categorize = kwargs.get('categorize', False)
         questions = kwargs.get('questions')
 
         if vectorstore:
@@ -28,7 +29,14 @@ class LLMWrapper:
 
         system_prompt = get_system_prompt(context)
         if summary:
-            system_prompt = get_notes_generator_prompt(context, questions)
+            current = kwargs.get('current', 1)
+            total = kwargs.get('total', 1)
+            system_prompt = get_notes_generator_prompt(context, questions, current, total)
+
+        if categorize:
+            transcript = kwargs.get('script')
+            description = kwargs.get('video_description')
+            system_prompt = get_categories_prompt(transcript, description)
 
         # Append the system prompt first in a new conversation
         self.history.append({"role": "system", "content": system_prompt})
@@ -47,6 +55,19 @@ class LLMWrapper:
                 )
                 # Append the model's response to history
                 self.history.append({"role": "assistant", "content": response['choices'][0]['message']['content']})
+                
+                summary = kwargs.get('summary', False)
+                categorize = kwargs.get('categorize', False)
+
+                if summary:
+                    print(self.history, "history")
+                    self.reset_history()
+
+                if categorize:
+                    print(self.history, "history")
+                    self.reset_history()
+
+                print(self.history)
                 return response['choices'][0]['message']['content']
 
             except openai.error.RateLimitError as e:

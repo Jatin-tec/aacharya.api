@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify
 from ..services.llm_service import wrapper
-from ..services.chat_service import get_transcript, crop_transcript, huggingface_ef, document_exists
+from ..services.chat_service import get_transcript, crop_transcript, huggingface_ef, document_exists, get_video_details
 from flask import current_app
 from time import sleep
 import uuid
+import json
 import datetime
 
 bp = Blueprint('chat', __name__, url_prefix='/chat')
@@ -80,6 +81,11 @@ def sessions():
 def transcript():
     video_id = request.args.get('q')
     mongo = current_app.db["videos"]
+    topics_collection = current_app.db["topics"]
+
+    vectorstore = current_app.vectorstore
+
+    collection = vectorstore.get_or_create_collection(name="videos")
 
     if not video_id:
         return jsonify({'response': 'video_id not provided'})
@@ -97,14 +103,33 @@ def transcript():
         script = ""
         for entry in transcript:
             script += entry['text'] + " "
+        
+        youtube_api = current_app.config.get("YOUTUBE_API")
+        video_description = get_video_details(youtube_api, video_id)
+
+        category = wrapper.generate_response(script=script, video_description=video_description["description"], categorize=True, user_input="categories this video for me.")
+        category = json.loads(category)
+
+        topics_collection.insert_one({
+            "videoId": video_id,
+            "topics": category,
+            "userId": user["sid"],
+            "addedAt": datetime.datetime.now()
+        })
 
         # Store the transcript in the database
         mongo.insert_one({
             "videoId": video_id,
             "transcript": transcript,
             "script": script,
-            "addedAt": datetime.datetime.now()
+            "addedAt": datetime.datetime.now(),
+            "description": video_description
         })
+
+        # Add the video to the vectorstore
+        # embedded_script = huggingface_ef(script)
+        # collection.add(documents=[script], ids=[video_id], embeddings=[embedded_script])
+
         print("Transcript added to database")
         return jsonify(transcript)
 
@@ -166,6 +191,16 @@ def ask():
 # @login_required
 def summarize():
     video_id = request.args.get('q')
+    if not video_id:
+        return jsonify({'response': 'video_id not provided'})
+    
+    user = request.json.get('user')
+    if not user:
+        return jsonify({'response': 'user not authenticated'})
+    
+    conversation = request.json.get('conversation')
+    if not conversation:
+        conversation = []
 
     transcript = get_transcript(video_id)
 
@@ -173,47 +208,34 @@ def summarize():
     for entry in transcript:
         script += entry['text'] + " "
 
+    mongo = current_app.db["notes"]
+
     # generate smallers chunks of text
     chunk_size = 8000
     chunks = [script[i:i+chunk_size] for i in range(0, len(script), chunk_size)]
 
     print(f"Number of chunks: {len(chunks)}")
-    print(chunks[:2])
 
-    # summarize each chunk
-    response_msg = ""
-    for chunk in chunks:
-        if len(chunk) > 50:
-            response = wrapper.generate_response(chunk, summary=True)
-            response_msg += response
-        sleep(3)
-        print("Chunk processed")
-    return jsonify({'response': response_msg})
+    response_msg = mongo.find_one({"videoId": video_id})
+    if response_msg:
+        response_msg = response_msg['notes']
+    if not response_msg:
+        # summarize each chunk
+        response_msg = ""
+        i = 1
+        for chunk in chunks:
+            if len(chunk) > 50:
+                response = wrapper.generate_response(chunk, summary=True,  current=i, total=len(chunks), questions=conversation)
+                response_msg += response
+            i += 1
+            print("Chunk processed")
+            sleep(3)
 
-    # vectorstore = current_app.vectorstore
-    # collection = vectorstore.get_or_create_collection(name="yt_transcripts", embedding_function=huggingface_ef)
+        mongo.insert_one({
+            "videoId": video_id,
+            "userId": user["sid"],
+            "notes": response_msg,
+            "timestamp": datetime.datetime.now()
+        })
     
-    # db_script = collection.get(ids=[video_id])
-
-    # if not db_script:
-    #     db_script = collection.add(
-    #         documents=[script],
-    #         ids=[video_id],
-    #     )
-    
-    embedded_script = huggingface_ef(script)
-
-    # response = wrapper.generate_response("", context=transcript, vectorstore=vectorstore, summary=True)
-
-    response_msg = embedded_script
-    # try:
-    #     for r in response:
-    #         if r["choices"][0]["delta"] == {}:
-    #             break
-    #         msg = r["choices"][0]["delta"]["content"]
-    #         response_msg += msg
-    # except Exception as e:
-    #     print(f"Error processing response: {e}")
-    #     response_msg = "Error generating response. Please try again."
-
     return jsonify({'response': response_msg})
