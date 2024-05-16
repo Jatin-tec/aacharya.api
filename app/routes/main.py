@@ -1,17 +1,15 @@
 from flask import Flask, request, jsonify, render_template, Blueprint, redirect, url_for, session
 from flask import current_app as app
 from googleapiclient.discovery import build
-from ..services.auth_service import login_required
 
 bp = Blueprint('main', __name__, url_prefix='/')
 
 
-@bp.route('/', methods=['GET'])
-@login_required
+@bp.route('/', methods=['GET', 'POST'])
 def main():
     search_query = request.args.get('q')
     if not search_query:  
-        return render_template('home.html')
+        return jsonify({})
     else:  
         try:
             api_key = app.config.get("YOUTUBE_API")
@@ -37,7 +35,7 @@ def main():
                     }
                     results.append(video_info)
 
-            return render_template('home.html', results=results)
+            return jsonify(results)
 
         except Exception as e:
             print("An error occurred:", str(e))

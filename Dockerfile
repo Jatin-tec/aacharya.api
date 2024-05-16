@@ -1,15 +1,28 @@
-FROM python:3.8-slim
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
 
+# Set the working directory in the container
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-RUN pip3 install -r requirements.txt
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# Install Python dependencies
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 5000
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-ENV FLASK_ENV=development
+# Define environment variable
+# ENV NAME World
 
-CMD ["python", "run.py"]
+# Run the application
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "run:app"]

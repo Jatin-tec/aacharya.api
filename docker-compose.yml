@@ -5,6 +5,23 @@ networks:
     driver: bridge
 
 services:
+  flask:
+    restart: always
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - IS_PERSISTENT=TRUE
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    networks:
+      - net
+    depends_on:
+      - chroma
+      - mongodb
+
   chroma:
     image: ghcr.io/chroma-core/chroma:latest
     environment:
