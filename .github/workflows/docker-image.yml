@@ -28,4 +28,4 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        tags: aacharya-api:latest, aacharya-api:${{ github.run_number }}
+        tags:  ${{ secrets.DOCKER_HUB_USERNAME }}/aacharya-api:latest,  ${{ secrets.DOCKER_HUB_USERNAME }}/aacharya-api:${{ github.run_number }}
