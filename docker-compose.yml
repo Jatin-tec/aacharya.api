@@ -46,6 +46,18 @@ services:
     networks:
       - net
 
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - flask
+    networks:
+      - net
+
 volumes:
   mongodb_data_container:
   chroma-data:

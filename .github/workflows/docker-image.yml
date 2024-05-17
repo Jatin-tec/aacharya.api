@@ -1,31 +1,37 @@
-name: Docker Image CI
+name: Deployment Workflow
 
+# Trigger this workflow on pushes to the specified branch
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Docker environment
-      uses: docker/setup-buildx-action@v1
+      - name: Set permissions for private key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
+          chmod 600 key.pem
+      
+      - name: Pull Recent git changes
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'cd aacharya.api && git pull'
+  
+      - name: Set Django ENV
+        run: |
+          echo "${{ secrets.CLIENT_SECRETS }}" > .env
+          scp -i key.pem $(pwd)/.env ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/ubuntu/aacharya.api/.env
+  
+      - name: Stop running container
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'docker compose -f "/home/ubuntu/aacharya.api/docker-compose.yml" down'
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        tags:  ${{ secrets.DOCKER_HUB_USERNAME }}/aacharya-api:latest,  ${{ secrets.DOCKER_HUB_USERNAME }}/aacharya-api:${{ github.run_number }}
+      - name: Run new container
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'docker compose -f "/home/ubuntu/aacharya.api/docker-compose.yml" up -d --build'
