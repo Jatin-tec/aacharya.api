@@ -20,12 +20,10 @@ class Config(object):
     YOUTUBE_API = os.environ.get('YOUTUBE_API')
 
     # Auth0 configurations
-    AUTH0_DOMAIN = os.environ.get('AUTH0_DOMAIN')
-    AUTH0_CLIENT_ID = os.environ.get('AUTH0_CLIENT_ID')
-    AUTH0_CLIENT_SECRET = os.environ.get('AUTH0_CLIENT_SECRET')
-    AUTH0_CALLBACK_URL = os.environ.get('AUTH0_CALLBACK_URL', 'http://localhost:5000/auth/callback')
-    AUTH0_AUDIENCE = os.environ.get('AUTH0_AUDIENCE', f'https://{AUTH0_DOMAIN}/userinfo')
-
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+    
     # ChromaDB / Weaviate configuration
     CHROMA_HOST = os.environ.get('CHROMA_HOST', 'default_host')
 
@@ -34,4 +32,3 @@ class Config(object):
 
     # MongoDB configurations
     MONGO_URI = os.environ.get("MONGO_URI")
-    print(MONGO_URI, 'MONGO_URI')

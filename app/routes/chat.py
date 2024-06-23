@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify
 from ..services.llm_service import wrapper
 from ..services.chat_service import get_transcript, crop_transcript, huggingface_ef, document_exists, get_video_details
+from flask_jwt_extended import jwt_required
 from flask import current_app
 from time import sleep
 import uuid
@@ -78,6 +79,7 @@ def sessions():
     return render_template('chat.html', videoURL=videoURL)
 
 @bp.route('/transcript', methods=['GET', 'POST'])
+# @jwt_required
 def transcript():
     video_id = request.args.get('q')
     mongo = current_app.db["videos"]

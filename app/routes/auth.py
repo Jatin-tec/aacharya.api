@@ -1,55 +1,77 @@
-from flask import Blueprint, redirect, url_for, session, current_app, session
+from flask import request, jsonify, Blueprint, redirect, url_for, session, current_app, session
 from urllib.parse import urlencode
 import os, binascii
 import datetime
+from ..services.auth_service import create_user, get_user_by_email, verify_password
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-@bp.route('/login')
+@bp.route('/login', methods=['POST'])
 def login_route():
-    oauth = current_app.oauth
-    # Generate a nonce and save it in the session
-    nonce = binascii.hexlify(os.urandom(16)).decode()
-    session['nonce'] = nonce
-    return oauth.auth0.authorize_redirect(redirect_uri=current_app.config['AUTH0_CALLBACK_URL'], nonce=nonce)
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
 
-@bp.route('/callback')
-def callback():
-    oauth = current_app.oauth
-    # Retrieve the nonce from the session
-    nonce = session.get('nonce')
-    # The nonce is a required argument for parse_id_token for validation
-    token = oauth.auth0.authorize_access_token()
-    user = oauth.auth0.parse_id_token(token, nonce=nonce)
-    session['jwt_payload'] = user
-    # It's a good practice to remove the nonce from the session after it's used
-    session.pop('nonce', None)
+    print(email, password)
 
-    db = current_app.db["users"]
+    mongo = current_app.db["users"]
+    user = get_user_by_email(email, mongo)
 
-    print(user, "user here")
+    print(user, verify_password(user, password))
+    
+    if not user or not verify_password(user, password):
+        return jsonify({"msg": "Bad email or password"}), 401
 
-    # create or update user
-    user = db.find_one({"sub": session['jwt_payload']["sub"]})
+    access_token = create_access_token(identity=str(user["email"]))
+    return jsonify(access_token=access_token), 200
 
-    if user is None:
-        user = {
-            "sub": session['jwt_payload']["sub"],
-            "email": session['jwt_payload']["email"],
-            "name": session['jwt_payload']["name"],
-            "picture": session['jwt_payload']["picture"],
-            "created_at": datetime.datetime.now(),
-            "last_login": datetime.datetime.now()
-        }
-        db.insert_one(user)
+@bp.route('/signup', methods=['POST'])
+def signup():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    mongo = current_app.db["users"]
+
+    if get_user_by_email(email, mongo):
+        return jsonify({"msg": "User already exists"}), 400
+
+    user_id = create_user(email, password, mongo)
+    return jsonify({"msg": "User created", "user_id": str(user_id)}), 201
+
+@bp.route('/login/google')
+def google_login():
+    google = current_app.google
+    return google.authorize(callback=url_for('auth.google_authorized', _external=True))
+
+
+@bp.route('/login/google/authorized')
+def google_authorized():
+    google = current_app.google
+    mongo = current_app.db["users"]
+    
+    @google.tokengetter
+    def get_google_oauth_token():
+        return session.get('google_token')
+
+    response = google.authorized_response()
+    if response is None or response.get('access_token') is None:
+        return jsonify({"msg": "Access denied: reason={} error={}".format(
+            request.args['error_reason'],
+            request.args['error_description']
+        )}), 400
+
+    session['google_token'] = (response['access_token'], '')
+    google_user_info = google.get('userinfo')
+    email = google_user_info.data['email']
+
+    user = get_user_by_email(email, mongo) 
+    if not user:
+        user_id = mongo.insert_one(google_user_info.data).inserted_id
     else:
-        user.update({
-            "last_login": datetime.datetime.now()
-        })
+        user_id = user["_id"]
 
-    return redirect('/dashboard')
+    access_token = create_access_token(identity=google_user_info.data)
+    return redirect(f'http://localhost:3000/auth/login?token={access_token}', code=302)
 
-@bp.route('/logout')
-def logout():
-    session.clear()
-    return redirect("/")

@@ -14,10 +14,11 @@ def profile():
         topics = current_app.db["topics"]
 
         user = request.json.get("user")
+        
         if not user:
             return jsonify({"error": "User not authenticated"}), 401
         
-        notes = notes.find({"userId": user["sid"]}).sort("createdAt", -1)
+        notes = notes.find({"userId": user["id"]}).sort("createdAt", -1)
 
         notes_list = []
         for note in notes:
@@ -28,11 +29,11 @@ def profile():
                 "createdAt": note["timestamp"],
             })
 
-        watch_history = watch_history.find({"user.sid": user["sid"]}).sort("timestamp", -1)
+        watch_history = watch_history.find({"user.id": user["id"]}).sort("timestamp", -1)
         vectorstore = current_app.vectorstore
         collection = vectorstore.get_or_create_collection(name="yt_transcripts")
         
-        user_topics = topics.find({"userId": user["sid"]})
+        user_topics = topics.find({"userId": user["id"]})
 
         user_topics_list = []
         for topic in user_topics:
