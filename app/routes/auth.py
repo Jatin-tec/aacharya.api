@@ -43,7 +43,7 @@ def signup():
 @bp.route('/login/google')
 def google_login():
     google = current_app.google
-    return google.authorize(callback=url_for('auth.google_authorized', _external=True))
+    return google.authorize(callback=url_for('auth.google_authorized', _external=True, _scheme='https'))
 
 
 @bp.route('/login/google/authorized')
@@ -73,5 +73,5 @@ def google_authorized():
         user_id = user["_id"]
 
     access_token = create_access_token(identity=google_user_info.data)
-    return redirect(f'http://localhost:3000/auth/login?token={access_token}', code=302)
+    return redirect(f'https://aacharya.in/auth/login?token={access_token}', code=302)
 
