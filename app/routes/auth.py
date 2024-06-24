@@ -4,6 +4,7 @@ import os, binascii
 import datetime
 from ..services.auth_service import create_user, get_user_by_email, verify_password
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from bson import ObjectId
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -50,6 +51,7 @@ def google_login():
 def google_authorized():
     google = current_app.google
     mongo = current_app.db["users"]
+    CLIENT_URL = current_app.config["CLIENT_URL"]
     
     @google.tokengetter
     def get_google_oauth_token():
@@ -68,10 +70,14 @@ def google_authorized():
 
     user = get_user_by_email(email, mongo) 
     if not user:
-        user_id = mongo.insert_one(google_user_info.data).inserted_id
+        user_info = google_user_info.data
+        user_info['_id'] = str(ObjectId())  # Convert ObjectId to string
+        user_id = mongo.insert_one(user_info).inserted_id
+        user_info['_id'] = str(user_id)  # Ensure the user_info has string id
     else:
         user_id = user["_id"]
+        user_info = user
+        user_info['_id'] = str(user_id)  # Ensure the user_info has string id
 
-    access_token = create_access_token(identity=google_user_info.data)
-    return redirect(f'https://aacharya.in/auth/login?token={access_token}', code=302)
-
+    access_token = create_access_token(identity=user_info)
+    return redirect(f'{CLIENT_URL}auth/login?token={access_token}', code=302)

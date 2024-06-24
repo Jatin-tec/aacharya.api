@@ -61,6 +61,8 @@ def create_app(test_config=None):
 
     client = MongoClient(Config.MONGO_URI)
     app.db = client.aacharya
+    
+    app.client_url = Config.CLIENT_URL
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(main.bp)

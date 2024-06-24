@@ -32,3 +32,6 @@ class Config(object):
 
     # MongoDB configurations
     MONGO_URI = os.environ.get("MONGO_URI")
+
+    # Client URL
+    CLIENT_URL = os.environ.get("CLIENT_URL")
