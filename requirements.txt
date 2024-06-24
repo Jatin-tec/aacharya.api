@@ -22,5 +22,5 @@ python-dotenv==1.0.1
 SQLAlchemy==2.0.27
 websocket-client==1.7.0
 websockets==12.0
-Werkzeug==2.2.2
+Werkzeug
 youtube-transcript-api==0.6.2
