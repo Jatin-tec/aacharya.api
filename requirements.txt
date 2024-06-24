@@ -1,11 +1,11 @@
 youtube-transcript-api==0.6.2
 chromadb-client==0.4.25.dev0
-Flask==3.0.2
-Flask-JWT-Extended==4.6.0
-Flask-OAuthlib==0.9.6
-Flask-PyMongo==2.3.0
-Flask-SocketIO==5.3.6
-flask-cors==4.0.0
+Flask==2.2.2
+Flask-JWT-Extended
+Flask-OAuthlib
+Flask-PyMongo
+Flask-SocketIO
+flask-cors
 google-api-core==2.18.0
 google-api-python-client==2.125.0
 google-auth==2.29.0
@@ -23,6 +23,6 @@ websocket-client==1.7.0
 graphlib-backport
 eventlet==0.35.2 
 gunicorn==21.2.0
-taipy-gui==3.1.0
 authlib>=1.0
+Werkzeug==2.2.2
 google-api-python-client==2.125.0
