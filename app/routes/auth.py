@@ -1,10 +1,11 @@
 from flask import request, jsonify, Blueprint, redirect, url_for, session, current_app, session
-from urllib.parse import urlencode
-import os, binascii
-import datetime
 from ..services.auth_service import create_user, get_user_by_email, verify_password
+from ..utils.auth.parse_object import parse_user
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from urllib.parse import urlencode
 from bson import ObjectId
+import uuid
+import datetime
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -14,32 +15,57 @@ def login_route():
     email = data.get('email')
     password = data.get('password')
 
-    print(email, password)
-
     mongo = current_app.db["users"]
     user = get_user_by_email(email, mongo)
-
-    print(user, verify_password(user, password))
     
     if not user or not verify_password(user, password):
         return jsonify({"msg": "Bad email or password"}), 401
 
     access_token = create_access_token(identity=str(user["email"]))
-    return jsonify(access_token=access_token), 200
+    user = parse_user(user)
+    return jsonify({
+        "access_token": access_token,
+        **user
+    }), 200
+
+@bp.route('/is_authenticated', methods=['GET'])
+@jwt_required()
+def is_authenticated():
+    try:
+        current_user = get_jwt_identity()
+        return jsonify(logged_in_as=current_user), 200
+    except Exception as e:
+        return jsonify({"msg": f"Unauthorized, {e}"}), 401
 
 @bp.route('/signup', methods=['POST'])
 def signup():
     data = request.json
-    email = data.get('email')
-    password = data.get('password')
-
+    email = data.get("email")
+    password = data.get("password")
+    given_name = data.get("first_name")
+    family_name = data.get("last_name")
     mongo = current_app.db["users"]
 
     if get_user_by_email(email, mongo):
         return jsonify({"msg": "User already exists"}), 400
 
-    user_id = create_user(email, password, mongo)
-    return jsonify({"msg": "User created", "user_id": str(user_id)}), 201
+    user = {
+        "email": email,
+        "verified_email": False,
+        "sid": str(uuid.uuid4()),
+        "name": f"{given_name} {family_name}",
+        "given_name": given_name,
+        "family_name": family_name,
+        "picture": "",
+        "password": password,
+        "created_at": datetime.datetime.now(),
+        "updated_at": datetime.datetime.now(),
+        "last_login": datetime.datetime.now(),
+        "is_active": True
+    }
+
+    user_id = create_user(user, mongo)
+    return jsonify({"msg": "User created", "user_id": str(user_id)}), 200
 
 @bp.route('/login/google')
 def google_login():

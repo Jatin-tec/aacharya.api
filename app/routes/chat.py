@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify
 from ..services.llm_service import wrapper
 from ..services.chat_service import get_transcript, crop_transcript, huggingface_ef, document_exists, get_video_details
-from flask_jwt_extended import jwt_required
+from ..services.auth_service import get_user_by_email
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import current_app
 from time import sleep
 import uuid
@@ -79,26 +80,31 @@ def sessions():
     return render_template('chat.html', videoURL=videoURL)
 
 @bp.route('/transcript', methods=['GET', 'POST'])
-# @jwt_required
+@jwt_required(optional=False)
 def transcript():
     video_id = request.args.get('q')
+
     mongo = current_app.db["videos"]
     topics_collection = current_app.db["topics"]
+    user_collection = current_app.db["users"]
 
-    vectorstore = current_app.vectorstore
-
-    collection = vectorstore.get_or_create_collection(name="videos")
+    # vectorstore = current_app.vectorstore
+    # collection = vectorstore.get_or_create_collection(name="videos")
 
     if not video_id:
         return jsonify({'response': 'video_id not provided'})
     
-    data = request.json
-    user = data['user']
-    if not user:
-        return jsonify({'response': 'user not authenticated'})
+    current_user = get_jwt_identity()
+    print(current_user, 'current_user')
+
+    current_user = get_user_by_email(current_user, user_collection)
+
+    if not current_user:
+        return jsonify({'response': 'user not found'}, 401)
     
     # Check if the video exists in the database
     video = mongo.find_one({"videoId": video_id})
+    
     if not video:
         transcript = get_transcript(video_id=video_id)
 
@@ -109,13 +115,15 @@ def transcript():
         youtube_api = current_app.config.get("YOUTUBE_API")
         video_description = get_video_details(youtube_api, video_id)
 
+        print(video_description, 'video_description')
+
         category = wrapper.generate_response(script=script, video_description=video_description["description"], categorize=True, user_input="categories this video for me.")
-        category = json.loads(category)
+        print(category, 'category')
 
         topics_collection.insert_one({
             "videoId": video_id,
             "topics": category,
-            "userId": user["sid"],
+            "userId": current_user["sid"],
             "addedAt": datetime.datetime.now()
         })
 

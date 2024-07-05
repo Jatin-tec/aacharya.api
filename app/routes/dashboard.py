@@ -1,11 +1,15 @@
-from flask import Blueprint, render_template, session, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from bson.objectid import ObjectId
 from ..services.chat_service import huggingface_ef
+from ..services.auth_service import get_user_by_email
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
-bp = Blueprint('profile', __name__, url_prefix='/dashboard')
 
-@bp.route('/', methods=['GET', 'POST'])
-def profile():
+bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
+
+@bp.route('/', methods=['GET', 'POST'], endpoint='profile_view')
+@jwt_required( )
+def profile_view():
     try:
         # Establish a connection to the users collection
         notes = current_app.db["notes"]
@@ -13,12 +17,13 @@ def profile():
         videos = current_app.db["videos"]
         topics = current_app.db["topics"]
 
-        user = request.json.get("user")
-        
+        user =  get_jwt_identity()
+        user = get_user_by_email(user, current_app.db["users"])
+
         if not user:
             return jsonify({"error": "User not authenticated"}), 401
         
-        notes = notes.find({"userId": user["id"]}).sort("createdAt", -1)
+        notes = notes.find({"userId": user["sid"]}).sort("createdAt", -1)
 
         notes_list = []
         for note in notes:
@@ -29,11 +34,11 @@ def profile():
                 "createdAt": note["timestamp"],
             })
 
-        watch_history = watch_history.find({"user.id": user["id"]}).sort("timestamp", -1)
+        watch_history = watch_history.find({"user.sid": user["sid"]}).sort("timestamp", -1)
         vectorstore = current_app.vectorstore
         collection = vectorstore.get_or_create_collection(name="yt_transcripts")
         
-        user_topics = topics.find({"userId": user["id"]})
+        user_topics = topics.find({"userId": user["sid"]})
 
         user_topics_list = []
         for topic in user_topics:
@@ -78,6 +83,7 @@ def history():
         db_videos = current_app.db["videos"]
             
 @bp.route('/update_watch_history', methods=['POST'])
+@jwt_required
 def update_history():
     db_videos = current_app.db["videos"]
     db_watch_history = current_app.db["watch_history"]
@@ -88,7 +94,7 @@ def update_history():
     
     timestamp = request.json.get("timestamp", 0)
 
-    user = request.json.get("user")
+    user = request.headers.get("access_token")
     if not user:
         return jsonify({"error": "User is required"}), 400
 

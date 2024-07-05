@@ -72,6 +72,9 @@ def get_video_details(youtube_api_key, video_id):
         id=video_id
     ).execute()
 
+    print(video_id, 'video_id')
+    print(video_response, 'video_response')
+
     # Check if there are any results
     if not video_response['items']:
         return "No video found with the specified ID"

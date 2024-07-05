@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-import openai
+import google.generativeai as genai
 
 # Load environment variables from .env file
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -14,8 +14,8 @@ class Config(object):
     DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
     # OpenAI API key
-    OPENAI_APIKEY = os.environ.get('OPENAI_APIKEY')
-    openai.api_key = OPENAI_APIKEY
+    GEMINI_KEY = os.environ.get('GEMINI_KEY')
+    genai.configure(api_key=GEMINI_KEY)
 
     YOUTUBE_API = os.environ.get('YOUTUBE_API')
 

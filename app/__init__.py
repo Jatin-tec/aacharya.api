@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_socketio import SocketIO
-from .routes import auth, main, chat, profile
+from .routes import auth, dashboard, main, chat
 from pymongo import MongoClient
 from .config import Config
 import chromadb
@@ -32,9 +32,10 @@ def create_app(test_config=None):
 
     # allow cross origin requests
     CORS(app)
-    jwt = JWTManager(app)
+    # jwt handler
+    JWTManager(app)
+    # google oauth
     oauth = OAuth(app)
-
     google = oauth.remote_app(
         'google',
         consumer_key=Config.GOOGLE_CLIENT_ID,
@@ -49,24 +50,23 @@ def create_app(test_config=None):
         authorize_url='https://accounts.google.com/o/oauth2/auth',
     )
     app.google = google
-
+    # chromadb client
     chroma_host = Config.CHROMA_HOST
     vectorstore = chromadb.HttpClient(host=chroma_host , port=8000, settings=chromadb.config.Settings(allow_reset=True, anonymized_telemetry=False))
-
     wait_for_chroma_service(vectorstore)
-
     app.vectorstore = vectorstore
+
     if test_config:
         app.config.update(test_config)
 
+    # connect to the database
     client = MongoClient(Config.MONGO_URI)
     app.db = client.aacharya
-    
     app.client_url = Config.CLIENT_URL
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(main.bp)
     app.register_blueprint(chat.bp)
-    app.register_blueprint(profile.bp)
+    app.register_blueprint(dashboard.bp)
 
     return app

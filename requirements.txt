@@ -26,3 +26,4 @@ gunicorn==21.2.0
 authlib>=1.0
 Werkzeug==2.2.2
 google-api-python-client==2.125.0
+google-generativeai==0.7.1
