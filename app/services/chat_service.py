@@ -2,22 +2,69 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from flask import current_app
 import chromadb.utils.embedding_functions as embedding_functions
 from googleapiclient.discovery import build
-
+from ..services.llm_service import wrapper
+from ..services.auth_service import get_user_by_email
+import datetime
+import json
 import time
 
-def get_transcript(video_id, retries=3, delay=5):
-    attempt = 0
-    while attempt < retries:
-        try:
-            transcript = YouTubeTranscriptApi.get_transcript(video_id)
-            return transcript
-        except Exception as e:
-            print(f"Connection reset by server: {e}. Retrying in {delay} seconds...")
-            time.sleep(delay)
-            attempt += 1
-    print("Failed to retrieve transcript after several attempts.")
-    return None
+def get_transcript(video_id, retries=3, delay=5, mongo=None, userId=None):
+    video = mongo["videos"].find_one({"videoId": video_id})
+    if not video:
+        attempt = 0
+        while attempt < retries:
+            try:
+                # Retrieve the transcript from YouTube
+                transcript = YouTubeTranscriptApi.get_transcript(video_id)
+                script = ""
+                for entry in transcript:
+                    script += entry['text'] + " "
+                
+                # Retrieve the video description from YouTube
+                youtube_api = current_app.config.get("YOUTUBE_API")
+                video_description = get_video_details(youtube_api, video_id)
 
+                # Store the transcript in the database
+                videos_collection = current_app.db["videos"]
+                # check if the video already exists in the database
+                video = videos_collection.find_one({"videoId": video_id})
+                if not video:
+                    videos_collection.insert_one({
+                        "videoId": video_id,
+                        "transcript": transcript,
+                        "script": script,
+                        "addedAt": datetime.datetime.now(),
+                        "description": video_description
+                    })
+                return transcript
+            except Exception as e:
+                print(f"Connection reset by server: {e}. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                attempt += 1
+        print("Failed to retrieve transcript after several attempts.")
+        return None
+    
+
+    transcript = video['transcript']
+    # Store the video category in the database
+    topics_collection = current_app.db["topics"]
+    # check if the video already exists in the database
+    topic = topics_collection.find_one({"videoId": video_id, "userId": userId})
+    if not topic:
+        script = ""
+        for entry in transcript:
+            script += entry['text'] + " "
+        video_description = video['description']
+        # Generate video category
+        category = wrapper.generate_response(script=script, video_description=video_description, categorize=True, user_input="categories this video for me.")
+        if not topic:
+            topics_collection.insert_one({
+                "videoId": video_id,
+                "topics": json.loads(category),
+                "userId": userId,
+                "addedAt": datetime.datetime.now()
+            })
+    return transcript
 
 def crop_transcript(transcript, timestamp):
     cropped_transcript = []
@@ -71,9 +118,6 @@ def get_video_details(youtube_api_key, video_id):
         part='snippet',  # Part parameter specifies that we need snippet information
         id=video_id
     ).execute()
-
-    print(video_id, 'video_id')
-    print(video_response, 'video_response')
 
     # Check if there are any results
     if not video_response['items']:

@@ -84,8 +84,7 @@ def sessions():
 def transcript():
     video_id = request.args.get('q')
 
-    mongo = current_app.db["videos"]
-    topics_collection = current_app.db["topics"]
+    mongo = current_app.db
     user_collection = current_app.db["users"]
 
     # vectorstore = current_app.vectorstore
@@ -95,68 +94,28 @@ def transcript():
         return jsonify({'response': 'video_id not provided'})
     
     current_user = get_jwt_identity()
-    print(current_user, 'current_user')
-
     current_user = get_user_by_email(current_user, user_collection)
 
     if not current_user:
         return jsonify({'response': 'user not found'}, 401)
     
-    # Check if the video exists in the database
-    video = mongo.find_one({"videoId": video_id})
-    
-    if not video:
-        transcript = get_transcript(video_id=video_id)
-
-        script = ""
-        for entry in transcript:
-            script += entry['text'] + " "
-        
-        youtube_api = current_app.config.get("YOUTUBE_API")
-        video_description = get_video_details(youtube_api, video_id)
-
-        print(video_description, 'video_description')
-
-        category = wrapper.generate_response(script=script, video_description=video_description["description"], categorize=True, user_input="categories this video for me.")
-        print(category, 'category')
-
-        topics_collection.insert_one({
-            "videoId": video_id,
-            "topics": category,
-            "userId": current_user["sid"],
-            "addedAt": datetime.datetime.now()
-        })
-
-        # Store the transcript in the database
-        mongo.insert_one({
-            "videoId": video_id,
-            "transcript": transcript,
-            "script": script,
-            "addedAt": datetime.datetime.now(),
-            "description": video_description
-        })
-
-        # Add the video to the vectorstore
-        # embedded_script = huggingface_ef(script)
-        # collection.add(documents=[script], ids=[video_id], embeddings=[embedded_script])
-
-        print("Transcript added to database")
-        return jsonify(transcript)
-
-    transcript = video['transcript']
+    transcript = get_transcript(video_id=video_id, mongo=mongo, userId=current_user["sid"])
     return jsonify(transcript)
 
 @bp.route('/ask', methods=['POST'])
+@jwt_required(optional=False)
 def ask():
-    mongo = current_app.db["conversations"]
-    
-    data = request.json
+    mongo = current_app.db
+    conversations_collection = mongo["conversations"]
+    user_collection = mongo["users"]
 
-    user = data['user']
-    print (user)
+    email = get_jwt_identity()
+    user = get_user_by_email(email, user_collection)
     if not user:
         return jsonify({'response': 'user not authenticated'})
     
+    data = request.json
+
     user_message = data['message']
     if not user_message:
         return jsonify({'response': 'message not provided'})
@@ -167,22 +126,18 @@ def ask():
     if not video_id:
         return jsonify({'response': 'video_id not provided'})
     
-    print(user_message, timestamp, video_id)
-
-    transcript = get_transcript(video_id)
+    transcript = get_transcript(video_id=video_id, mongo=mongo, userId=user["sid"])
     # Crop the transcript up to the provided timestamp
     cropped_transcript = crop_transcript(transcript, timestamp)
-    print(cropped_transcript, 'cropped_transcript')
 
     response = wrapper.generate_response(user_message, context=cropped_transcript)
-    
     wrapper.history.append({
         "role": "user", 
-        "content": response 
+        "parts": response 
     })
 
     # Store system response
-    mongo.insert_one({   
+    conversations_collection.insert_one({   
         "videoId": video_id,
         "userId": user["sid"],
         "transcript": transcript,

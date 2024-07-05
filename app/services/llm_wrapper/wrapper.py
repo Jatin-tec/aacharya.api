@@ -43,11 +43,11 @@ class LLMWrapper:
     def _send_request(self, user_prompt, **kwargs):
         # Append the user prompt to history after the system's initial response setup
         self.history.append({"role": "user", "parts": [user_prompt]})
-
+        print(self.history, "HISTORY")
         for attempt in range(self.max_tries):
             try:
                 response = self.model.generate_content(self.history)
-                print(response)
+                print(response, "RESPONSE")
 
                 # Append the model's response to history
                 self.history.append({"role": "model", "parts": [response.text]})
@@ -63,13 +63,6 @@ class LLMWrapper:
 
                 return response.text
             
-            except genai.exceptions.RateLimitException:
-                if attempt == 0:
-                    sleep_time = 0
-                if attempt == self.max_tries - 1:
-                    return {'error': 'rate_limit', 'message': 'Rate limit exceeded'}
-                self._handle_rate_limit(sleep_time+10)
-            
             except Exception as e:
                 print("Unhandled exception:", e)
                 return {'error': 'unknown', 'message': str(e)}
@@ -78,6 +71,17 @@ class LLMWrapper:
         time.sleep(sleep_time)
 
     def generate_response(self, user_input, **kwargs):
+        """
+        The function generates a response based on user input and system prompts.
+        
+        :param user_input: The `user_input` parameter in the `generate_response` method represents the
+        input provided by the user. This input is used by the method to generate a response or perform
+        some action based on the user's input
+        context: The `context` parameter in the `generate_response` method represents the context of the
+        conversation. This context is used to provide additional information to the model to generate a
+        more accurate response.
+        :return: The `generate_response` method returns the result of the `_send_request` method.
+        """
         if not self.history:
             self._prepare_system_prompt(user_input, **kwargs)
         return self._send_request(user_input, **kwargs)
