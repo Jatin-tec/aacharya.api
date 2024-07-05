@@ -1,26 +1,26 @@
 version: '3.4'
 
-# networks:
-#   net:
-#     driver: bridge
+networks:
+  net:
+    driver: bridge
 
 services:
-  # flask:
-  #   restart: always
-  #   build: 
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     - IS_PERSISTENT=TRUE
-  #   ports:
-  #     - "8080:8080"
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - net
-  #   depends_on:
-  #     - chroma
-  #     - mongodb
+  flask:
+    restart: always
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - IS_PERSISTENT=TRUE
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    networks:
+      - net
+    depends_on:
+      - chroma
+      - mongodb
 
   chroma:
     image: ghcr.io/chroma-core/chroma:latest
@@ -30,8 +30,8 @@ services:
       - "8000:8000"
     volumes:
       - chroma-data:/chroma/chroma
-    # networks:
-    #   - net
+    networks:
+      - net
 
   mongodb:
     image: mongo:latest
@@ -43,8 +43,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data_container:/data/db
-    # networks:
-    #   - net
+    networks:
+      - net
 
   # chatgpt:
   #   image: pawanosman/chatgpt:latest
@@ -53,17 +53,17 @@ services:
     # networks:
     #   - net
 
-  # nginx:
-  #   image: nginx:latest
-  #   restart: always
-  #   ports:
-  #     - "80:80"
-  #   volumes:
-  #     - ./nginx:/etc/nginx/conf.d
-  #   depends_on:
-  #     - flask
-  #   networks:
-  #     - net
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - flask
+    networks:
+      - net
 
 volumes:
   mongodb_data_container:
