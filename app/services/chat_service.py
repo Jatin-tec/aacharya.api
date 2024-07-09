@@ -57,13 +57,12 @@ def get_transcript(video_id, retries=3, delay=5, mongo=None, userId=None):
         video_description = video['description']
         # Generate video category
         category = wrapper.generate_response(script=script, video_description=video_description, categorize=True, user_input="categories this video for me.")
-        if not topic:
-            topics_collection.insert_one({
-                "videoId": video_id,
-                "topics": json.loads(category),
-                "userId": userId,
-                "addedAt": datetime.datetime.now()
-            })
+        topics_collection.insert_one({
+            "videoId": video_id,
+            "topics": json.loads(category),
+            "userId": userId,
+            "addedAt": datetime.datetime.now()
+        })
     return transcript
 
 def crop_transcript(transcript, timestamp):

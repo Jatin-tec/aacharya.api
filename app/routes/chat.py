@@ -153,13 +153,13 @@ def ask():
     return jsonify({'response': response})
 
 @bp.route('/summarize', methods=['POST'])
-# @login_required
+@jwt_required(optional=False)
 def summarize():
     video_id = request.args.get('q')
     if not video_id:
         return jsonify({'response': 'video_id not provided'})
     
-    user = request.json.get('user')
+    user = get_user_by_email(get_jwt_identity(), current_app.db["users"])
     if not user:
         return jsonify({'response': 'user not authenticated'})
     
@@ -167,21 +167,20 @@ def summarize():
     if not conversation:
         conversation = []
 
-    transcript = get_transcript(video_id)
+    transcript = get_transcript(video_id=video_id, mongo=current_app.db, userId=user["sid"])
 
     script = ""
     for entry in transcript:
         script += entry['text'] + " "
 
-    mongo = current_app.db["notes"]
-
+    notes_collection = current_app.db["notes"]
     # generate smallers chunks of text
     chunk_size = 8000
     chunks = [script[i:i+chunk_size] for i in range(0, len(script), chunk_size)]
 
     print(f"Number of chunks: {len(chunks)}")
 
-    response_msg = mongo.find_one({"videoId": video_id})
+    response_msg = notes_collection.find_one({"videoId": video_id})
     if response_msg:
         response_msg = response_msg['notes']
     if not response_msg:
@@ -196,7 +195,7 @@ def summarize():
             print("Chunk processed")
             sleep(3)
 
-        mongo.insert_one({
+        notes_collection.insert_one({
             "videoId": video_id,
             "userId": user["sid"],
             "notes": response_msg,

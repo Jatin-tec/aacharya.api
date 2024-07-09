@@ -72,7 +72,6 @@ def google_login():
     google = current_app.google
     return google.authorize(callback=url_for('auth.google_authorized', _external=True, _scheme='https'))
 
-
 @bp.route('/login/google/authorized')
 def google_authorized():
     google = current_app.google
@@ -98,12 +97,22 @@ def google_authorized():
     if not user:
         user_info = google_user_info.data
         user_info['_id'] = str(ObjectId())  # Convert ObjectId to string
-        user_id = mongo.insert_one(user_info).inserted_id
-        user_info['_id'] = str(user_id)  # Ensure the user_info has string id
+        user_id = mongo.insert_one({
+            "email": user_info["email"],
+            "verified_email": user_info["verified_email"],
+            "sid": user_info["id"],
+            "name": user_info["name"],
+            "given_name": user_info["given_name"],
+            "family_name": user_info["family_name"],
+            "picture": user_info["picture"],
+            "created_at": datetime.datetime.now(),
+            "updated_at": datetime.datetime.now(),
+            "last_login": datetime.datetime.now(),
+            "is_active": True
+        }).inserted_id
+        user_id = user_info["id"]
     else:
-        user_id = user["_id"]
-        user_info = user
-        user_info['_id'] = str(user_id)  # Ensure the user_info has string id
+        user_id = user["sid"]
 
-    access_token = create_access_token(identity=user_info)
+    access_token = create_access_token(identity=user_id)
     return redirect(f'{CLIENT_URL}auth/login?token={access_token}', code=302)
