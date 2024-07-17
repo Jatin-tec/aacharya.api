@@ -1,28 +1,27 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10-slim
+FROM python:3.11.4-slim-buster
 
-# Set the working directory in the container
-WORKDIR /app
+# set work directory
+WORKDIR /usr/src/app
 
-# Set environment variables
+# set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libc6-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt update
+RUN apt install python3-pip python3-dev libpq-dev postgresql-contrib -y && \
+    apt-get clean && \
+    rm -rf /root/.cache
 
-# Install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# install dependencies
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# copy project
+COPY . .
 
-# Define environment variable
-# ENV NAME World
+# install local packages
+RUN pip install -e llm_wrapper
 
-# Run the application
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "run:app"]
+# run entrypoint.sh
+ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

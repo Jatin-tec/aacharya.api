@@ -1,71 +1,51 @@
-version: '3.4'
-
-networks:
-  net:
-    driver: bridge
+version: '3'
 
 services:
-  flask:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django-web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./:/usr/src/app/
+    ports:
+      - 8000:8000
     restart: always
+    env_file:
+      - ./.env
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:13-alpine
+    container_name: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+    env_file:
+      - ./.env.db
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  celery:
     build: 
       context: .
       dockerfile: Dockerfile
+    restart: always
+    command: celery -A project worker -l info
+    volumes:
+      - ./:/usr/src/app/
     environment:
       - IS_PERSISTENT=TRUE
-    ports:
-      - "8080:8080"
     env_file:
       - .env
-    networks:
-      - net
     depends_on:
-      - chroma
-      - mongodb
-
-  chroma:
-    image: ghcr.io/chroma-core/chroma:latest
-    environment:
-      - IS_PERSISTENT=TRUE
-    ports:
-      - "8000:8000"
-    volumes:
-      - chroma-data:/chroma/chroma
-    networks:
-      - net
-
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: rootuser
-      MONGO_INITDB_ROOT_PASSWORD: rootpass
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data_container:/data/db
-    networks:
-      - net
-
-  # chatgpt:
-  #   image: pawanosman/chatgpt:latest
-  #   ports:
-  #     - "3040:3040"
-    # networks:
-    #   - net
-
-  nginx:
-    image: nginx:latest
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx:/etc/nginx/conf.d
-    depends_on:
-      - flask
-    networks:
-      - net
+      - postgres
+      - rabbitmq
 
 volumes:
-  mongodb_data_container:
-  chroma-data:
-    driver: local
+  pgdata:

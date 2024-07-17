@@ -1,0 +1,12 @@
+{% load i18n %}
+
+{% blocktrans %}
+Hello {{ name }},
+
+Welcome to our platform! We are excited to have you as a new member of our community.
+
+Thank you for joining us. If you have any questions or need assistance, feel free to reach out to our support team.
+
+Best regards,
+The {{ site_name }} Team
+{% endblocktrans %}
