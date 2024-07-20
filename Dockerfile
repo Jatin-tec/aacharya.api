@@ -13,7 +13,7 @@ RUN apt install python3-pip python3-dev libpq-dev postgresql-contrib -y && \
     rm -rf /root/.cache
 
 # install dependencies
-RUN pip install --upgrade pip
+RUN pip install pip==23.2.1
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 

@@ -10,4 +10,3 @@ logger = get_task_logger(__name__)
 def get_video_transcript_task(video_id):
     logger.info("Retrieved video transcript for %s", video_id)
     return get_video_transcript(video_id)
-

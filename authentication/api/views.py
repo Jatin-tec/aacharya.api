@@ -14,18 +14,17 @@ from authentication.mixins import PublicApiMixin, ApiErrorsMixin
 from authentication.utils import google_get_access_token, google_get_user_info, generate_tokens_for_user
 from authentication.models import User
 from authentication.api.serializers import UserSerializer
-
 from authentication.task import send_welcome_email
 
-def generate_tokens_for_user(user):
-    """
-    Generate access and refresh tokens for the given user
-    """
-    serializer = TokenObtainPairSerializer()
-    token_data = serializer.get_token(user)
-    access_token = token_data.access_token
-    refresh_token = token_data
-    return access_token, refresh_token
+
+@api_view(['GET'])
+def getRoutes(request):
+    routes = [
+        '/api/auth/login/google/',
+        '/api/auth/refresh/',
+        '/api/auth/me/',
+        ]    
+    return Response(routes)
 
 
 class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
@@ -57,8 +56,6 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
         access_token = google_get_access_token(code=code, redirect_uri=redirect_uri)
 
         user_data = google_get_user_info(access_token=access_token)
-
-        print(user_data, 'user_data')
 
         try:
             user = User.objects.get(email=user_data['email'])
@@ -95,20 +92,22 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
             send_welcome_email.delay(first_name, email)
             return Response(response_data)
 
-@api_view(['GET'])
-def getRoutes(request):
-    routes = [
-        '/api/token/',
-        '/api/token/refresh/',
-        '/api/token/verify/',
 
-        '/api/auth/register/',
-        '/api/auth/login/',
-        '/api/auth/logout/',
-        
-        '/api/auth/users/',
-        '/api/auth/user/<str:pk>/',
-        '/api/auth/user/<str:pk>/update/',
-        '/api/auth/user/<str:pk>/delete/',
-        ]    
-    return Response(routes)
+class TokenRefreshView(APIView):
+    def post(self, request):
+        serializer = TokenObtainPairSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        access_token, refresh_token = generate_tokens_for_user(user)
+        response_data = {
+            'user': UserSerializer(user).data,
+            'access_token': str(access_token),
+            'refresh_token': str(refresh_token)
+        }
+        return Response(response_data)
+
+
+class UserProfileView(APIView):
+    def get(self, request):
+        user = request.user
+        return Response(UserSerializer(user).data)

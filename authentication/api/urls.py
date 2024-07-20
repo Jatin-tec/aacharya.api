@@ -5,6 +5,8 @@ from django.conf import settings
 urlpatterns = [
     path('', views.getRoutes, name='routes'),
     path('login/google/', views.GoogleLoginApi.as_view(), name='login-with-google'),
+    path('refresh/', views.TokenRefreshView.as_view(), name='token_refresh'),
+    path('me/', views.UserProfileView.as_view(), name='user_profile'),
 ] 
 
 # add media url to urlpatterns if in debug mode
