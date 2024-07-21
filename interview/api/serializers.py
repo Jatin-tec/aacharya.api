@@ -6,7 +6,7 @@ from dateutil import parser
 class InterviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interview
-        fields = ['user', 'resume', 'parsed_resume', 'interview_code', 'job_title', 'job_description', 'company_name', 'interview_type', 'interview_status', 'interview_date', 'feedback', 'feedback_rating', 'stage']
+        fields = ['user', 'resume', 'parsed_resume', 'interview_code', 'job_title', 'job_description', 'company_name', 'interview_type', 'interview_status', 'interview_date', 'feedback', 'feedback_rating']
 
     def create(self, validated_data):
         resume = validated_data.pop('resume') # assuming resume is a list

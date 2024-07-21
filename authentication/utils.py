@@ -4,9 +4,9 @@ from typing import Dict, Any
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
-from django.core.mail import EmailMessage
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
+from django.utils.html import strip_tags
+from django.core.mail import send_mail
+from rest_framework_simplejwt.tokens import RefreshToken
 
 GOOGLE_ID_TOKEN_INFO_URL = 'https://www.googleapis.com/oauth2/v3/tokeninfo'
 GOOGLE_ACCESS_TOKEN_OBTAIN_URL = 'https://oauth2.googleapis.com/token'
@@ -18,12 +18,11 @@ def generate_tokens_for_user(user):
     """
     Generate access and refresh tokens for the given user
     """
-    serializer = TokenObtainPairSerializer()
-    token_data = serializer.get_token(user)
-    access_token = token_data.access_token
-    refresh_token = token_data
+    refresh = RefreshToken.for_user(user)
+    print(refresh, 'token_data')
+    access_token = str(refresh.access_token)
+    refresh_token = str(refresh)
     return access_token, refresh_token
-
 
 def google_get_access_token(*, code: str, redirect_uri: str) -> str:
     data = {
@@ -60,7 +59,6 @@ def get_first_matching_attr(obj, *attrs, default=None):
     for attr in attrs:
         if hasattr(obj, attr):
             return getattr(obj, attr)
-
     return default
 
 
@@ -78,21 +76,24 @@ def get_error_message(exc) -> str:
     return error_msg
 
 
-def send_email(name, email):   
-    context = {
-        'name': name,
-        'email': email,
-        'site_name': 'https://aacharya.in'
-    }
-
-    email_subject = 'Welcome to Aacharya!'
-    email_body = render_to_string('email/welcome_email.txt', context)
-
-    email = EmailMessage(
-        email_subject,
-        email_body,
-        settings.DEFAULT_FROM_EMAIL,
-        [email]
+def send_email(email, template_name, context, subject):
+    # context = {
+    #     'name': name,
+    #     'email': email,
+    #     'site_name': 'https://aacharya.in'
+    # }
+    # email_subject = 'Welcome to Aacharya!'
+    # email_body = render_to_string('email/welcome_email.txt', context)
+    email_subject = subject
+    email_body_html = render_to_string(template_name, context)
+    email_body_text = strip_tags(email_body_html)  # Generate a plain text version of the HTML content
+    
+    email_message = send_mail(
+        subject=email_subject,
+        message=email_body_text,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        html_message=email_body_html,
+        recipient_list=[email],
+        fail_silently=False,
     )
-
-    return email.send(fail_silently=False)
+    return email_message

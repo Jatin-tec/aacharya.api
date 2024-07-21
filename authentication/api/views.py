@@ -34,8 +34,6 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
 
     def get(self, request, *args, **kwargs):
         input_serializer = self.InputSerializer(data=request.GET)
-        print(input_serializer, 'input_serializer')
-        print(input_serializer.is_valid(), 'input_serializer.is_valid()')
         input_serializer.is_valid(raise_exception=True)
 
         validated_data = input_serializer.validated_data
@@ -46,13 +44,10 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
         login_url = f'{settings.BASE_FRONTEND_URL}/auth'
     
         if error or not code:
-            print('error', error)
-            print('code', code)
             params = urlencode({'error': error})
             return redirect(f'{login_url}?{params}')
 
         redirect_uri = f'{settings.BASE_FRONTEND_URL}/auth/loading'
-        print(redirect_uri, 'redirect_uri')
         access_token = google_get_access_token(code=code, redirect_uri=redirect_uri)
 
         user_data = google_get_user_info(access_token=access_token)
@@ -74,7 +69,7 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
             picture_url = user_data.get('picture', None)
 
             user = User.objects.create(
-                username=f"f{first_name} {last_name}",
+                username=f"{first_name} {last_name}",
                 email=email,
                 email_verified=email_verified,
                 first_name=first_name,
@@ -91,21 +86,6 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
             }
             send_welcome_email.delay(first_name, email)
             return Response(response_data)
-
-
-class TokenRefreshView(APIView):
-    def post(self, request):
-        serializer = TokenObtainPairSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        access_token, refresh_token = generate_tokens_for_user(user)
-        response_data = {
-            'user': UserSerializer(user).data,
-            'access_token': str(access_token),
-            'refresh_token': str(refresh_token)
-        }
-        return Response(response_data)
-
 
 class UserProfileView(APIView):
     def get(self, request):

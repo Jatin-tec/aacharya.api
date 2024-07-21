@@ -1,0 +1,159 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interview Scheduled</title>
+    <style>
+        body {
+            font-family: "Inter", "Arial", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: linear-gradient(90deg, #000000 0%, #4b4b4b 100%);
+            border-radius: 20px;
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .logo {
+            margin-bottom: 90px;
+            gap: 4px;
+            display: flex;
+        }
+
+        .content {
+            padding: 20px;
+            background-color: white;
+            border-radius: 20px;
+            color: black;
+        }
+
+        .btn {
+            background-color: black;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: black;
+            color: white;
+            text-align: left;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #ccc;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <p class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-package-2">
+                    <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
+                    <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9" />
+                    <path d="M12 3v6" />
+                </svg>Interviews by Acharya
+            </p>
+            <h1 style="margin-top: 0px; margin-bottom: 10px">
+                Congrats!
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-party-popper">
+                    <path d="M5.8 11.3 2 22l10.7-3.79" />
+                    <path d="M4 3h.01" />
+                    <path d="M22 8h.01" />
+                    <path d="M15 2h.01" />
+                    <path d="M22 20h.01" />
+                    <path
+                        d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10" />
+                    <path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17" />
+                    <path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7" />
+                    <path
+                        d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z" />
+                </svg>
+                <br />
+                Interview Scheduled
+            </h1>
+            <h2 style="margin-top: 0px; margin-bottom: 0px">
+                {{ company_name }} - {{ interview_type }} Round
+            </h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ username }},</p>
+            <p>
+                Your interview is successfully scheduled for Date:
+                <strong>{{ interview_date }} (IST)</strong>.
+            </p>
+            <hr />
+            <p>
+                Joining Interview is supereasy with
+                <strong>magic link
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-sparkles">
+                        <path
+                            d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+                        <path d="M20 3v4" />
+                        <path d="M22 5h-4" />
+                        <path d="M4 17v2" />
+                        <path d="M5 18H3" />
+                    </svg></strong>
+            </p>
+            <a href="#" class="btn">Start Interview</a>
+            <p><strong>or</strong></p>
+            <p>Use this code</p>
+            <h2>{{ interview_code }}</h2>
+            <p>Instructions for interview:</p>
+            <ul>
+                <li>
+                    Login window will be active till 30 minutes after
+                    scheduled time.
+                </li>
+                <li>Check your connectivity and Audio/video devices.</li>
+                <li>
+                    Interview will be monitored by system, any discrepancy
+                    will affect you report.
+                </li>
+            </ul>
+            <p>
+                Use this link if button not working
+                <a
+                    href="https://interview.acharya.in/session/128-234-986">https://interview.acharya.in/session/128-234-986</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>interview.aacharya.in</p>
+            <p><b>Follow us on social links</b></p>
+            <p>mail at interview@acharya.in</p>
+        </div>
+    </div>
+</body>
+
+</html>
