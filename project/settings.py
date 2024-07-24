@@ -42,12 +42,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
     'authentication.apps.AuthenticationConfig',
     'conversation.apps.ConversationConfig',
     'interview.apps.InterviewConfig',
-    'rest_framework',
-    'corsheaders',
-    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [

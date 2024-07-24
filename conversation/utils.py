@@ -15,11 +15,9 @@ def get_video_transcript(video_id, retries=2, delay=5):
             try:
                 # Retrieve the transcript from YouTube
                 transcript = YouTubeTranscriptApi.get_transcript(video_id)
-                print(transcript, 'transcript')
                 
                 # Retrieve the video description from YouTube
                 video_description = get_video_details(video_id)
-                print(video_description, 'video_description')
                 
                 # Save the video and its transcript to the database using Serializer
                 video_data = {
@@ -29,9 +27,6 @@ def get_video_transcript(video_id, retries=2, delay=5):
                 }
 
                 video_serializer = VideoSerializer(data=video_data)
-
-                print(video_serializer.is_valid(), 'video_serializer')
-
                 if video_serializer.is_valid():
                     video_serializer.save()
                     return transcript
@@ -56,7 +51,6 @@ def get_video_transcript(video_id, retries=2, delay=5):
             # Generate video category
             wrapper = LLMWrapper()
             category = wrapper.generate_response(script=script, video_description=video_description, categorize=True, user_input="categories this video for me.")
-            print(category, 'category')
 
             # Update the video topic
             category = json.loads(category)
@@ -67,7 +61,6 @@ def get_video_transcript(video_id, retries=2, delay=5):
 
 def get_video_details(video_id):
     youtube_api = os.environ.get("YOUTUBE_API_KEY", None)
-
     # Build the YouTube API client
     youtube = build('youtube', 'v3', developerKey=youtube_api)
 
@@ -85,3 +78,18 @@ def get_video_details(video_id):
     video_details = video_response['items'][0]['snippet']
 
     return video_details
+
+def crop_transcript(transcript, timestamp):
+    cropped_transcript = []
+    for entry in transcript:
+        entry_end_time = entry['start'] + entry['duration']
+        if entry_end_time <= timestamp:
+            cropped_transcript.append({
+                "text": entry['text'],
+                "start": entry['start'],
+            })
+        else:
+            # Optionally, you could add logic here to include the entry that's currently being spoken,
+            # even if it's only partially completed.
+            break
+    return cropped_transcript

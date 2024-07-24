@@ -1,12 +1,20 @@
+from llm_wrapper import wrapper
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from conversation.task import get_video_transcript_task
+
+from conversation.task import get_video_transcript_task, generate_response_task
+from conversation.api.serializers import TranscriptField, DescriptionField, VideoSerializer
+from conversation.models import Video, Conversation
+from conversation.utils import crop_transcript
+
 from authentication.mixins import ApiAuthMixin, ApiErrorsMixin
 from authentication.models import User
+
 from celery.result import AsyncResult
 
+from datetime import datetime
 
 @api_view(['GET'])
 def getRoutes(request):
@@ -42,7 +50,7 @@ class GetTaskStatus(APIView):
         if task_result.state == 'PENDING':
             return Response({'status': 'Pending'}, status=status.HTTP_200_OK)
         elif task_result.state == 'SUCCESS':
-            return Response({'status': 'Success', 'transcript': task_result.result}, status=status.HTTP_200_OK)
+            return Response({'status': 'Success', 'result': task_result.result}, status=status.HTTP_200_OK)
         elif task_result.state == 'FAILURE':
             return Response({'status': 'Failed', 'error': str(task_result.result)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
@@ -52,7 +60,19 @@ class GetTaskStatus(APIView):
 class AskApi(ApiAuthMixin, ApiErrorsMixin, APIView):
     def post(self, request):
         # get the user from the request
-        email = request.user
-        user = User.objects.get(email=email)
+        email = request.user.email        
+        user_message = request.data.get('message')
+        if not user_message:
+            return Response({'response': 'message not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response("Ask API endpoint", status=status.HTTP_200_OK)
+        timestamp = request.data.get('timestamp', 0)  # Default to 0 if not provided
+        video_id = request.query_params.get('q')
+        if not video_id:
+            return Response({'response': 'video_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        task = generate_response_task.delay(user_message=user_message, video_id=video_id, timestamp=timestamp, email=email)
+        
+        return Response({'task_id': task.id}, status=status.HTTP_202_ACCEPTED)
+    
+class SummarizeApi(ApiAuthMixin, ApiErrorsMixin, APIView):
+    pass
