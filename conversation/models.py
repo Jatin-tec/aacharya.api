@@ -1,4 +1,5 @@
 from django.db import models
+from authentication.models import User
 
 class Topic(models.Model):
     id = models.AutoField(primary_key=True, auto_created=True)
@@ -24,3 +25,11 @@ class Video(models.Model):
     
     class Meta:
         ordering = ['-addedAt']
+        
+class Conversation(models.Model):
+    id = models.AutoField(primary_key=True, auto_created=True)
+    videoId = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='conversations')
+    username = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations')
+    timestamp = models.DateTimeField()
+    text = models.TextField(null=True, blank=True)
+    response = models.TextField(null=True, blank=True)

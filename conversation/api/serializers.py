@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from conversation.models import Video
+from conversation.models import Video, Conversation
+from authentication.api.serializers import UserSerializer
 import json
 
 class TranscriptField(serializers.Field):
@@ -74,3 +75,11 @@ class VideoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Video
         fields = ['videoId', 'transcript', 'description']
+
+class ConversationSerializer(serializers.ModelSerializer):
+    videoId = VideoSerializer()
+    username = UserSerializer()
+    
+    class Meta:
+        model = Conversation
+        fields = ['id', 'videoId', 'username', 'timestamp', 'timestamp', 'text', 'response']
