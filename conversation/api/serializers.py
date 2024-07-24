@@ -74,7 +74,7 @@ class VideoSerializer(serializers.ModelSerializer):
     description = DescriptionField()
     class Meta:
         model = Video
-        fields = ['videoId', 'transcript', 'description']
+        fields = ['videoId', 'transcript', 'description', 'visual_data']
 
 class ConversationSerializer(serializers.ModelSerializer):
     videoId = VideoSerializer()
