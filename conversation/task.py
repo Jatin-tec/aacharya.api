@@ -20,7 +20,6 @@ def get_video_transcript_task(video_id):
 
 @shared_task(name="generate_response")
 def generate_response_task(user_message, video_id, timestamp, email):
-    logger.info("Generated response for %s", user_message)
     transcript = get_video_transcript(video_id)
     cropped_transcript = crop_transcript(transcript, timestamp)
     wrapper = LLMWrapper()
@@ -39,31 +38,24 @@ def generate_response_task(user_message, video_id, timestamp, email):
         response=response
     )
     
+    logger.info("Generated response for %s", user_message)
     return response
 
 @shared_task(name="summarize_video")
 def summarize_video(video_id, conversation, email):
-    logger.info("Summarized video %s", video_id)
     transcript = get_video_transcript(video_id)
-    
     script = ""
     for entry in transcript:
         script += entry['text'] + " "
-    
     chunk_size = 8000
     chunks = [script[i:i+chunk_size] for i in range(0, len(script), chunk_size)]
-    print(f"Number of chunks: {len(chunks)}")
-    
     video = Video.objects.get(videoId=video_id)
     user = User.objects.get(email=email)
-    
     try:
         notes = Note.objects.get(videoId=video)
     except Note.DoesNotExist:
         notes = None
-    
     wrapper = LLMWrapper()
-    
     if notes:
         notes = notes.notes
     else:
@@ -75,7 +67,22 @@ def summarize_video(video_id, conversation, email):
             i += 1
             print("Chunk processed")
             sleep(3)
-        
         Note.objects.create(videoId=video, username=user, notes=notes)
     
+    logger.info("Summarized video %s", video_id)
     return notes
+
+@shared_task(name="get_flowchart_data")
+def get_flowchart_data(video_id):
+    video = Video.objects.get(videoId=video_id)
+    if video.visual_data:
+        logger.info("Flowchart data already exists for %s", video_id)
+        return video.visual_data
+    else:
+        transcript = get_video_transcript(video_id)
+        wrapper = LLMWrapper()
+        response = wrapper.generate_response("Extracts topics for video provided.", context=transcript, visualize=True)
+        video.visual_data = response
+        video.save()
+        logger.info("Generated flowchart data for %s", video_id)
+        return response

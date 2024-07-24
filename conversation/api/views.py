@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 
-from conversation.task import get_video_transcript_task, generate_response_task, summarize_video
+from conversation import task
 from conversation.api.serializers import TranscriptField, DescriptionField, VideoSerializer
 from conversation.models import Video, Conversation, Note
 
@@ -35,8 +35,8 @@ class TranscriptApi(APIView):
     authentication_classes = []
     def get(self, request, video_id):
         print(video_id, 'video_id')
-        task = get_video_transcript_task.delay(video_id)
-        return Response({'task_id': task.id}, status=status.HTTP_202_ACCEPTED)
+        task_obj = task.get_video_transcript_task.delay(video_id)
+        return Response({'task_id': task_obj.id}, status=status.HTTP_202_ACCEPTED)
 
 
 class GetTaskStatus(APIView):
@@ -66,9 +66,8 @@ class AskApi(ApiAuthMixin, ApiErrorsMixin, APIView):
         if not video_id:
             return Response({'response': 'video_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
         
-        task = generate_response_task.delay(user_message=user_message, video_id=video_id, timestamp=timestamp, email=email)
-        
-        return Response({'task_id': task.id}, status=status.HTTP_202_ACCEPTED)
+        task_obj = task.generate_response_task.delay(user_message=user_message, video_id=video_id, timestamp=timestamp, email=email)
+        return Response({'task_id': task_obj.id}, status=status.HTTP_202_ACCEPTED)
     
 class SummarizeApi(ApiAuthMixin, ApiErrorsMixin, APIView):
     def post(self, request):
@@ -76,8 +75,14 @@ class SummarizeApi(ApiAuthMixin, ApiErrorsMixin, APIView):
         email = request.user.email        
         if not video_id:
             return Response({'response': 'video_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
-        conversation = request.data.get('conversation')
-        
-        task = summarize_video.delay(video_id=video_id, conversation=conversation, email=email)
-        
-        return Response({'task_id': task.id}, status=status.HTTP_202_ACCEPTED)
+        conversation = request.data.get('conversation')        
+        task_obj = task.summarize_video.delay(video_id=video_id, conversation=conversation, email=email)
+        return Response({'task_id': task_obj.id}, status=status.HTTP_202_ACCEPTED)
+
+class GetVisualsApi(ApiAuthMixin, ApiErrorsMixin, APIView):
+    def get(self, request):
+        video_id = request.query_params.get('q')
+        if not video_id:
+            return Response({'response': 'video_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        task_obj = task.get_flowchart_data.delay(video_id=video_id)
+        return Response({'task_id': task_obj.id}, status=status.HTTP_202_ACCEPTED)
