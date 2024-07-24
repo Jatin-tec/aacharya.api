@@ -7,4 +7,5 @@ urlpatterns = [
     path('transcript/<str:video_id>', views.TranscriptApi.as_view(), name='transcript'),
     path('task/<str:task_id>', views.GetTaskStatus.as_view(), name='task'),
     path('ask/', views.AskApi.as_view(), name='ask'),
+    path('summarize/', views.SummarizeApi.as_view(), name='summarize'),
 ] 

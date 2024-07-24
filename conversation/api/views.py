@@ -1,20 +1,16 @@
-from llm_wrapper import wrapper
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 
-from conversation.task import get_video_transcript_task, generate_response_task
+from conversation.task import get_video_transcript_task, generate_response_task, summarize_video
 from conversation.api.serializers import TranscriptField, DescriptionField, VideoSerializer
-from conversation.models import Video, Conversation
-from conversation.utils import crop_transcript
+from conversation.models import Video, Conversation, Note
 
 from authentication.mixins import ApiAuthMixin, ApiErrorsMixin
 from authentication.models import User
 
 from celery.result import AsyncResult
-
-from datetime import datetime
 
 @api_view(['GET'])
 def getRoutes(request):
@@ -75,4 +71,13 @@ class AskApi(ApiAuthMixin, ApiErrorsMixin, APIView):
         return Response({'task_id': task.id}, status=status.HTTP_202_ACCEPTED)
     
 class SummarizeApi(ApiAuthMixin, ApiErrorsMixin, APIView):
-    pass
+    def post(self, request):
+        video_id = request.query_params.get('q')
+        email = request.user.email        
+        if not video_id:
+            return Response({'response': 'video_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        conversation = request.data.get('conversation')
+        
+        task = summarize_video.delay(video_id=video_id, conversation=conversation, email=email)
+        
+        return Response({'task_id': task.id}, status=status.HTTP_202_ACCEPTED)

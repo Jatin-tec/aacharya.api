@@ -33,3 +33,10 @@ class Conversation(models.Model):
     timestamp = models.DateTimeField()
     text = models.TextField(null=True, blank=True)
     response = models.TextField(null=True, blank=True)
+    
+class Note(models.Model):
+    id = models.AutoField(primary_key=True, auto_created=True)
+    videoId = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='notes')
+    username = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notes')
+    notes = models.TextField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
