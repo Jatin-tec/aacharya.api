@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-RUN apt update
+RUN apt-get update
 RUN apt install python3-pip python3-dev libpq-dev postgresql-contrib -y && \
     apt-get clean && \
     rm -rf /root/.cache
