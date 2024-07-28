@@ -19,3 +19,12 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+    
+class WatchHistory(models.Model):
+    id = models.AutoField(primary_key=True, auto_created=True)
+    username = models.ForeignKey(User, on_delete=models.CASCADE, related_name='watch_history')
+    video = models.ForeignKey('conversation.Video', on_delete=models.CASCADE, related_name='watch_history')
+    video_timestamp = models.FloatField()
+    
+    def __str__(self) -> str:
+        return self.id

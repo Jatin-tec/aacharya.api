@@ -3,12 +3,14 @@ from authentication.models import User
 
 class Topic(models.Model):
     id = models.AutoField(primary_key=True, auto_created=True)
-    name = models.CharField(max_length=50)
-    description = models.TextField(null=True, blank=True)
+    video = models.ForeignKey('Video', on_delete=models.CASCADE, related_name='topics')
+    category = models.CharField(max_length=50)
+    category_id = models.IntegerField()
+    username = models.ForeignKey(User, on_delete=models.CASCADE, related_name='topics')
     addedAt = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return f'Topic: {self.category} - {self.username} - {self.video.videoId}'
 
     class Meta:
         ordering = ['-addedAt']
@@ -31,12 +33,12 @@ class Conversation(models.Model):
     id = models.AutoField(primary_key=True, auto_created=True)
     videoId = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='conversations')
     username = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations')
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(auto_now_add=True)
     text = models.TextField(null=True, blank=True)
     response = models.TextField(null=True, blank=True)
     
     def __str__(self) -> str:
-        return self.id
+        return f'Conversation: {self.videoId} - {self.username}'
     
 class Note(models.Model):
     id = models.AutoField(primary_key=True, auto_created=True)
@@ -46,4 +48,4 @@ class Note(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     
     def __str__(self) -> str:
-        return self.id
+        return f'Note: {self.videoId} - {self.username}'

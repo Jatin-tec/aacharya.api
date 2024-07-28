@@ -1,21 +1,18 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from urllib.parse import urlencode
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.views import APIView
 from django.conf import settings
-from django.shortcuts import redirect
-from rest_framework.response import Response
-from authentication.mixins import PublicApiMixin, ApiErrorsMixin
-
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from authentication.mixins import PublicApiMixin, ApiErrorsMixin
+from django.shortcuts import redirect, get_object_or_404
+from authentication.mixins import PublicApiMixin, ApiErrorsMixin, ApiAuthMixin
 from authentication.utils import google_get_access_token, google_get_user_info, generate_tokens_for_user
-from authentication.models import User
+from authentication.models import User, WatchHistory
 from authentication.api.serializers import UserSerializer
 from authentication.task import send_welcome_email
-
+from conversation.models import Note, Topic, Video
+from conversation.api.serializers import VideoSerializer
+from django.core.exceptions import ObjectDoesNotExist
 
 @api_view(['GET'])
 def getRoutes(request):
@@ -25,6 +22,67 @@ def getRoutes(request):
         '/api/auth/me/',
         ]    
     return Response(routes)
+
+class WatchHistoryApi(APIView, ApiAuthMixin, ApiErrorsMixin):
+    def post(self, request):
+        videoId = request.data.get('videoId')
+        video_timestamp = request.data.get('video_timestamp', 0)
+        if not videoId:
+            return Response({'error': 'videoId is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = User.objects.get(email=request.user.email)
+        video = get_object_or_404(Video, videoId=videoId)
+        
+        try:
+            watch_history = WatchHistory.objects.get(username=request.user, video=video)
+            watch_history.video_timestamp = video_timestamp
+            watch_history.save()
+            return Response({'message': 'Watch history updated'}, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            WatchHistory.objects.create(username=user, video=video, video_timestamp=video_timestamp)
+            return Response({'message': 'Watch history created'}, status=status.HTTP_201_CREATED)
+        
+    def get(self, request):
+        user_email = request.user.email
+        user = get_object_or_404(User, email=user_email)
+
+        # Fetch user notes and create a dictionary to map videoId to notes
+        user_notes = Note.objects.filter(username=user).order_by('-timestamp')
+        video_notes_map = {}
+        for note in user_notes:
+            if note.videoId.videoId not in video_notes_map:
+                video_notes_map[note.videoId.videoId] = []
+            video_notes_map[note.videoId.videoId].append({
+                "notes": note.notes,
+                "createdAt": note.timestamp,
+            })
+
+        # Fetch user topics and associated videos
+        user_topics = Topic.objects.filter(username=user).distinct()
+        user_topics_list = []
+        for topic in user_topics:
+            videos = Video.objects.filter(topic=topic).distinct()
+            video_details = []
+            for video in videos:
+                serializer = VideoSerializer(video)
+                video_detail = {
+                    "videoId": video.videoId,
+                    "description": serializer.data['description'],
+                    "addedAt": video.addedAt,
+                    "notes": video_notes_map.get(video.videoId, [])
+                }
+                video_details.append(video_detail)
+
+            user_topics_list.append({
+                "topic": {
+                    "category": topic.category,
+                    "id": topic.category_id,
+                },
+                "videos": video_details
+            })
+
+        return Response({'watch_history': user_topics_list}, status=status.HTTP_200_OK)
+
 
 
 class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
@@ -91,3 +149,4 @@ class UserProfileView(APIView):
     def get(self, request):
         user = request.user
         return Response(UserSerializer(user).data)
+
