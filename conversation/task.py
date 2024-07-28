@@ -33,7 +33,6 @@ def generate_response_task(user_message, video_id, timestamp, email):
     Conversation.objects.create(
         videoId=video,
         username=user,
-        timestamp=timestamp,
         text=user_message,
         response=response
     )

@@ -11,7 +11,7 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('me/', views.UserProfileView.as_view(), name='user_profile'),
-    
+    path('watch-history/', views.WatchHistoryApi.as_view(), name='watch_history'),
 ] 
 
 # add media url to urlpatterns if in debug mode
