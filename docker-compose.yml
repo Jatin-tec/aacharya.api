@@ -38,7 +38,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    command: celery -A project worker -l info
+    command: celery -A project worker -l debug
     volumes:
       - ./:/usr/src/app/
     environment:

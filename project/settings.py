@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'celery',
     'authentication.apps.AuthenticationConfig',
     'conversation.apps.ConversationConfig',
     'interview.apps.InterviewConfig',

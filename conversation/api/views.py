@@ -31,16 +31,14 @@ def getRoutes(request):
     return Response(routes)
 
 
-class TranscriptApi(APIView):
-    authentication_classes = []
+class TranscriptApi(ApiAuthMixin, ApiErrorsMixin, APIView):
     def get(self, request, video_id):
         print(video_id, 'video_id')
         task_obj = task.get_video_transcript_task.delay(video_id)
-        return Response({'task_id': task_obj.id}, status=status.HTTP_202_ACCEPTED)
+        return Response({'task_id': task_obj.id}, status=status.HTTP_200_OK)
 
 
 class GetTaskStatus(APIView):
-    authentication_classes = []
     def get(self, request, task_id):
         task_result = AsyncResult(task_id)
         if task_result.state == 'PENDING':
