@@ -20,7 +20,6 @@ class Video(models.Model):
     transcript = models.TextField()
     description = models.TextField()
     addedAt = models.DateTimeField(auto_now_add=True)
-    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='videos', null=True, blank=True)
     visual_data = models.JSONField(null=True, blank=True)
 
     def __str__(self):

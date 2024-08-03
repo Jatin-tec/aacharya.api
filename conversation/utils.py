@@ -1,14 +1,17 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from googleapiclient.discovery import build
+from authentication.models import User
 from conversation.models import Video, Topic
-from conversation.api.serializers import VideoSerializer, TranscriptField, DescriptionField
+from conversation.api.serializers import VideoSerializer, TranscriptField, DescriptionField, TopicSerializer
 from llm_wrapper.wrapper import LLMWrapper
 import time
 import json
 import os
 
-def get_video_transcript(video_id, retries=2, delay=5):
+def get_video_transcript(video_id, email=None, retries=2, delay=5):
     video = Video.objects.filter(videoId=video_id).first()
+    user = User.objects.get(email=email)
+    topic = Topic.objects.filter(video=video, username=user).first()
     if not video:
         attempt = 0
         while attempt < retries:
@@ -28,8 +31,7 @@ def get_video_transcript(video_id, retries=2, delay=5):
 
                 video_serializer = VideoSerializer(data=video_data)
                 if video_serializer.is_valid():
-                    video_serializer.save()
-                    return transcript
+                    video = video_serializer.save()
                 else:
                     print(video_serializer.errors)
                     return None
@@ -40,23 +42,35 @@ def get_video_transcript(video_id, retries=2, delay=5):
                 if attempt == retries:
                     print("Failed to retrieve transcript after several attempts.")
                     return None
-    else:
-        transcript = TranscriptField().to_representation(video.transcript)
-        if not video.topic:
-            script = ""
-            for entry in transcript:
-                script += entry['text'] + " "
+    
+    transcript = TranscriptField().to_representation(video.transcript)
+    
+    if not email:
+        return transcript
+    
+    if not topic:
+        script = ""
+        for entry in transcript:
+            script += entry['text'] + " "
 
-            video_description = DescriptionField().to_representation(video.description)
-            # Generate video category
-            wrapper = LLMWrapper()
-            category = wrapper.generate_response(script=script, video_description=video_description, categorize=True, user_input="categories this video for me.")
-
-            # Update the video topic
-            category = json.loads(category)
-            topic = Topic.objects.filter(id=category['id']).first()
-            video.topic = topic
-            video.save()
+        video_description = DescriptionField().to_representation(video.description)
+        # Generate video category
+        wrapper = LLMWrapper()
+        category = wrapper.generate_response(script=script, video_description=video_description, categorize=True, user_input="categories this video for me.")
+        category = json.loads(category)
+        # Save topic to the database
+        topic_data = {
+            'video': video.id,
+            'category': category["category"],
+            'category_id': category["id"],
+            'username': user.email
+        }
+        topic_serializer = TopicSerializer(data=topic_data)
+        if topic_serializer.is_valid():
+            topic = topic_serializer.save()
+        else:
+            print(topic_serializer.errors, 'topic serializer errors')
+            return None
     return transcript
 
 def get_video_details(video_id):

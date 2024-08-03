@@ -13,29 +13,37 @@ from time import sleep
 logger = get_task_logger(__name__)
 
 @shared_task(name="get_video_transcript")
-def get_video_transcript_task(video_id):
+def get_video_transcript_task(video_id, email):
     logger.info("Retrieved video transcript for %s", video_id)
-    return get_video_transcript(video_id)
+    return get_video_transcript(video_id=video_id, email=email)
 
 @shared_task(name="generate_response")
 def generate_response_task(user_message, video_id, timestamp, email):
     transcript = get_video_transcript(video_id)
     cropped_transcript = crop_transcript(transcript, timestamp)
     wrapper = LLMWrapper()
+    
+    # append history with user last 3 messages if exists
+    conversation = Conversation.objects.filter(videoId=video_id, username=email).order_by('-timestamp')[:3]
+    if conversation:
+        history = []
+        for entry in conversation:
+            history.append({
+                "role": "user", 
+                "parts": [entry.user_message]
+            }, {
+                "role": "model",
+                "parts": [entry.response]
+            })
     response = wrapper.generate_response(user_message, context=cropped_transcript)
-    wrapper.history.append({
-        "role": "user", 
-        "parts": response 
-    })
-    video = Video.objects.get(videoId=video_id)
-    user = User.objects.get(email=email)
+    user = User.objects.filter(email=email).first()
+    video = Video.objects.filter(videoId=video_id).first()
     Conversation.objects.create(
         videoId=video,
         username=user,
         text=user_message,
         response=response
     )
-    
     logger.info("Generated response for %s", user_message)
     return response
 

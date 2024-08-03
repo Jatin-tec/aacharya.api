@@ -68,3 +68,20 @@ class Interview(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+
+class InterviewConversation(models.Model):
+    interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
+
+    question = models.TextField()
+    response = models.TextField()
+    score = models.IntegerField(default=0)
+    feedback = models.TextField(blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.interview.user.email
+
+    class Meta:
+        ordering = ['-created_at']

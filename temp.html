@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+
+        #question {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        #response {
+            width: 100%;
+            padding: 10px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        #send-btn {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #send-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #messages {
+            margin-top: 20px;
+        }
+
+        .message {
+            margin: 5px 0;
+            padding: 10px;
+            background-color: #ffffff;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .received {
+            background-color: #d1ecf1;
+            text-align: left;
+        }
+
+        .sent {
+            background-color: #c3e6cb;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Interview System</h2>
+    <div id="question">Waiting for the interview to start...</div>
+    <input type="text" id="response" placeholder="Type your response..." disabled>
+    <button id="send-btn" onclick="sendMessage()" disabled>Send</button>
+
+    <div id="messages"></div>
+
+    <script>
+        const interviewId = '0uo0fm81h';
+        const socket = new WebSocket(`ws://localhost:8000/ws/interview/${interviewId}/`);
+
+        socket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', 'received');
+            messageElement.textContent = data.response;
+            document.getElementById('messages').appendChild(messageElement);
+
+            document.getElementById('question').textContent = data.response;
+            document.getElementById('response').disabled = false;
+            document.getElementById('send-btn').disabled = false;
+        };
+
+        socket.onopen = function (e) {
+            console.log('WebSocket connection opened');
+        };
+
+        socket.onclose = function (e) {
+            console.log('WebSocket connection closed');
+            document.getElementById('response').disabled = true;
+            document.getElementById('send-btn').disabled = true;
+        };
+
+        function sendMessage() {
+            const response = document.getElementById('response').value;
+            console.log(response);
+            if (response) {
+                socket.send(JSON.stringify({ 'message': response }));
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', 'sent');
+                messageElement.textContent = response;
+                document.getElementById('messages').appendChild(messageElement);
+
+                document.getElementById('response').value = '';
+                document.getElementById('response').disabled = true;
+                document.getElementById('send-btn').disabled = true;
+            }
+        }
+    </script>
+</body>
+
+</html>

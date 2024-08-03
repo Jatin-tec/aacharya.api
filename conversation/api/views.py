@@ -34,7 +34,7 @@ def getRoutes(request):
 class TranscriptApi(ApiAuthMixin, ApiErrorsMixin, APIView):
     def get(self, request, video_id):
         print(video_id, 'video_id')
-        task_obj = task.get_video_transcript_task.delay(video_id)
+        task_obj = task.get_video_transcript_task.delay(video_id, email=request.user.email)
         return Response({'task_id': task_obj.id}, status=status.HTTP_200_OK)
 
 
@@ -65,7 +65,7 @@ class AskApi(ApiAuthMixin, ApiErrorsMixin, APIView):
             return Response({'response': 'video_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
         
         task_obj = task.generate_response_task.delay(user_message=user_message, video_id=video_id, timestamp=timestamp, email=email)
-        return Response({'task_id': task_obj.id}, status=status.HTTP_202_ACCEPTED)
+        return Response({'task_id': task_obj.id}, status=status.HTTP_200_OK)
     
 class SummarizeApi(ApiAuthMixin, ApiErrorsMixin, APIView):
     def post(self, request):
@@ -75,7 +75,7 @@ class SummarizeApi(ApiAuthMixin, ApiErrorsMixin, APIView):
             return Response({'response': 'video_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
         conversation = request.data.get('conversation')        
         task_obj = task.summarize_video.delay(video_id=video_id, conversation=conversation, email=email)
-        return Response({'task_id': task_obj.id}, status=status.HTTP_202_ACCEPTED)
+        return Response({'task_id': task_obj.id}, status=status.HTTP_200_OK)
 
 class GetVisualsApi(ApiAuthMixin, ApiErrorsMixin, APIView):
     def get(self, request):

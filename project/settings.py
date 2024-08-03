@@ -36,6 +36,7 @@ ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,6 +51,8 @@ INSTALLED_APPS = [
     'conversation.apps.ConversationConfig',
     'interview.apps.InterviewConfig',
 ]
+
+ASGI_APPLICATION = 'project.asgi.application'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -80,7 +83,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = os.getenv('DJANGO_WSGI_APPLICATION')
+# WSGI_APPLICATION = os.getenv('DJANGO_WSGI_APPLICATION')
 
 
 # Database

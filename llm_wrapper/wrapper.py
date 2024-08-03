@@ -47,22 +47,17 @@ class LLMWrapper:
     def _send_request(self, user_prompt, **kwargs):
         # Append the user prompt to history after the system's initial response setup
         self.history.append({"role": "user", "parts": [user_prompt]})
-        print(self.history)
         for _ in range(self.max_tries):
             try:
                 response = self.model.generate_content(self.history)
                 # Append the model's response to history
                 self.history.append({"role": "model", "parts": [response.text]})
-                
                 summary = kwargs.get('summary', False)
                 categorize = kwargs.get('categorize', False)
-
                 if summary:
                     self.reset_history()
-
                 if categorize:
                     self.reset_history()
-
                 return response.text
             
             except Exception as e:
